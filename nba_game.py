@@ -23,7 +23,7 @@ LOGOS = {
     "Magic": "https://loodibee.com/wp-content/uploads/nba-orlando-magic-logo.png",
     "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
     "Pelicans": "https://loodibee.com/wp-content/uploads/nba-new-orleans-pelicans-logo.png",
-    "Nuggets": "https://loodibee.com/wp-content/uploads/nba-denver-nuggets-logo.png",
+    "Nuggets": "https://loodibee.com/wp-content/uploads/denver-nuggets-logo-symbol.png",
     "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
     "Timberwolves": "https://loodibee.com/wp-content/uploads/nba-minnesota-timberwolves-logo.png",
     "Suns": "https://loodibee.com/wp-content/uploads/nba-phoenix-suns-logo.png",
