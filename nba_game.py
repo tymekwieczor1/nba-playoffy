@@ -94,7 +94,7 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 st.markdown("""
     <style>
     .match-card { 
-        margin-bottom: 80px; 
+        margin-bottom: 20px; 
     }
     
     /* --- KONTENER DRUŻYNY --- */
@@ -105,26 +105,26 @@ st.markdown("""
         border: 2px solid #444;
         background: rgba(255,255,255,0.02);
         transition: 0.3s;
-        height: 160px; 
+        height: 140px; /* Zmniejszono z 160px na 140px */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
     }
     .team-box img {
-        margin-bottom: 15px;
-        max-height: 70px; 
+        margin-bottom: 10px;
+        max-height: 60px; /* Zmniejszono logo z 70px */
         object-fit: contain;
     }
     
     /* --- TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
     div.element-container:has(.team-box) + div.element-container {
-        margin-top: -160px; 
+        margin-top: -140px; 
         position: relative;
         z-index: 10;
     }
     div.element-container:has(.team-box) + div.element-container button {
-        height: 160px; 
+        height: 140px; 
         opacity: 0 !important; 
         cursor: pointer;
     }
@@ -148,25 +148,34 @@ st.markdown("""
         color: #0099ff !important;
     }
 
-    /* --- DRASTYCZNIE ZWIĘKSZONA CZCIONKA W MENU ROZWIJANYM --- */
+    /* --- CZCIONKA W MENU ROZWIJANYM (STONOWANA) --- */
     div[data-baseweb="select"] {
-        font-size: 26px !important; /* Ogromny tekst w samym polu */
+        font-size: 20px !important; 
     }
     div[data-baseweb="select"] > div {
-        font-size: 26px !important;
-        min-height: 60px !important; /* Wyższe pole select */
+        font-size: 20px !important;
+        min-height: 50px !important; 
     }
     div[data-baseweb="popover"] ul li {
-        font-size: 26px !important; /* Ogromny tekst na rozwijanej liście */
-        padding: 15px !important; /* Więcej miejsca między opcjami */
-    }
-    /* Powiększenie strzałki w selectboxie */
-    div[data-baseweb="select"] svg {
-        width: 24px !important;
-        height: 24px !important;
+        font-size: 20px !important; 
+        padding: 10px !important; 
     }
 
-    .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #f82910; font-weight: bold; }
+    /* Wygląd nagłówków etapów */
+    .round-header { 
+        background-color: #1e1e1e; 
+        padding: 15px; 
+        border-radius: 10px; 
+        text-align: center; 
+        margin: 40px 0 30px 0; 
+        border-left: 5px solid #f82910; 
+        border-right: 5px solid #f82910;
+        font-weight: bold; 
+        font-size: 1.4em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
@@ -199,65 +208,83 @@ with tab1:
         
         is_locked = now > START_TIME
 
-        for k in ALL_KEYS:
-            t1, t2 = BRACKET[k][0], BRACKET[k][1]
-            current_val = st.session_state.temp_picks.get(k, "4-0")
-            left_wins = int(current_val.split("-")[0]) == 4
-            num_games = sum(map(int, current_val.split("-")))
+        # Zamiast prostej pętli, dzielimy klucze na grupy (etapy turnieju)
+        STAGE_GROUPS = [
+            ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
+            ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
+            ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
+            ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
+            ("FINAŁ NBA", ["FINALS"])
+        ]
 
-            st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align: center; margin-bottom: 20px;'>{t1} vs {t2}</h3>", unsafe_allow_html=True)
+        for stage_name, keys in STAGE_GROUPS:
+            # Nagłówek etapu
+            st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
             
-            c1, c2 = st.columns(2)
-            
-            logo_t1 = LOGOS.get(t1, LOGOS["TBD"])
-            logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
-            
-            with c1:
-                st.markdown(f'''
-                <div class="team-box {"selected-blue" if left_wins else "unselected"}">
-                    <img src="{logo_t1}" alt="{t1}">
-                    <span style="font-weight: bold; font-size: 1.3em;">{t1}</span>
-                </div>
-                ''', unsafe_allow_html=True)
+            for i, k in enumerate(keys):
+                t1, t2 = BRACKET[k][0], BRACKET[k][1]
+                current_val = st.session_state.temp_picks.get(k, "4-0")
+                left_wins = int(current_val.split("-")[0]) == 4
+                num_games = sum(map(int, current_val.split("-")))
+
+                st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
+                st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
-                if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked, use_container_width=True):
-                    st.session_state.temp_picks[k] = f"4-{num_games-4}"
-                    st.rerun()
-
-            with c2:
-                st.markdown(f'''
-                <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
-                    <img src="{logo_t2}" alt="{t2}">
-                    <span style="font-weight: bold; font-size: 1.3em;">{t2}</span>
-                </div>
-                ''', unsafe_allow_html=True)
+                c1, c2 = st.columns(2)
                 
-                if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked, use_container_width=True):
-                    st.session_state.temp_picks[k] = f"{num_games-4}-4"
-                    st.rerun()
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # OGROMNY NAPIS "Liczba meczów serii"
-            st.markdown(f'<div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Liczba meczów serii:</div>', unsafe_allow_html=True)
-            
-            selected_games = st.selectbox(
-                f"Ukryty Label {k}", 
-                [4, 5, 6, 7], 
-                index=[4, 5, 6, 7].index(num_games), 
-                key=f"sl_{k}", 
-                disabled=is_locked,
-                label_visibility="collapsed"
-            )
-            
-            if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
-            else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
-            
-            # OGROMNY NAPIS "Twój typ"
-            st.markdown(f'<p style="margin-top:20px; font-size: 28px;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+                logo_t1 = LOGOS.get(t1, LOGOS["TBD"])
+                logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
+                
+                with c1:
+                    st.markdown(f'''
+                    <div class="team-box {"selected-blue" if left_wins else "unselected"}">
+                        <img src="{logo_t1}" alt="{t1}">
+                        <span style="font-weight: bold; font-size: 1.1em;">{t1}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked, use_container_width=True):
+                        st.session_state.temp_picks[k] = f"4-{num_games-4}"
+                        st.rerun()
 
+                with c2:
+                    st.markdown(f'''
+                    <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
+                        <img src="{logo_t2}" alt="{t2}">
+                        <span style="font-weight: bold; font-size: 1.1em;">{t2}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked, use_container_width=True):
+                        st.session_state.temp_picks[k] = f"{num_games-4}-4"
+                        st.rerun()
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Zmniejszony napis wyboru gier
+                st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
+                
+                selected_games = st.selectbox(
+                    f"Ukryty Label {k}", 
+                    [4, 5, 6, 7], 
+                    index=[4, 5, 6, 7].index(num_games), 
+                    key=f"sl_{k}", 
+                    disabled=is_locked,
+                    label_visibility="collapsed"
+                )
+                
+                if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
+                else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
+                
+                # Stonowany napis wyniku
+                st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Linia oddzielająca mecze (dodana dla każdego meczu oprócz ostatniego w danym etapie)
+                if i < len(keys) - 1:
+                    st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
             st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
             save_data(st.session_state.db, "wyniki.csv")
