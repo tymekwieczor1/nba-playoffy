@@ -159,9 +159,3 @@ with tab3:
         st.markdown("<br>", unsafe_allow_html=True)
         bracket_card("Timberwolves", 3, "Suns", 6)
         bracket_card("Nuggets", 2, "Lakers", 7)
-
-# --- PANEL ADMINA (widoczny tylko po zaznaczeniu) ---
-st.markdown("---")
-if st.checkbox("Pokaż bazę danych (tylko dla Admina)"):
-    st.subheader("Zawartość pliku wyniki.csv")
-    st.write(st.session_state.db)
