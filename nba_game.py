@@ -4,15 +4,14 @@ from datetime import datetime
 import os
 
 # --- KONFIGURACJA ---
-# Czas startu (zostawiam 2026, bo nie podano retro-roku)
 START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
-# Zaktualizowany słownik LOGOS o retro drużyny ze screena
+# Słownik LOGOS - NBA 2026
 LOGOS = {
-    # Drużyny Zachodu
+    # Zachód
     "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
     "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
     "Rockets": "https://loodibee.com/wp-content/uploads/nba-houston-rockets-logo.png",
@@ -21,7 +20,7 @@ LOGOS = {
     "Spurs": "https://loodibee.com/wp-content/uploads/nba-san-antonio-spurs-logo.png",
     "Trail Blazers": "https://loodibee.com/wp-content/uploads/nba-portland-trail-blazers-logo.png",
     
-    # Drużyny Wschodu
+    # Wschód
     "Pistons": "https://loodibee.com/wp-content/uploads/nba-detroit-pistons-logo.png",
     "Cavaliers": "https://loodibee.com/wp-content/uploads/nba-cleveland-cavaliers-logo.png",
     "Raptors": "https://loodibee.com/wp-content/uploads/nba-toronto-raptors-logo.png",
@@ -29,20 +28,18 @@ LOGOS = {
     "Hawks": "https://loodibee.com/wp-content/uploads/nba-atlanta-hawks-logo.png",
     "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
     
-    # Generyczne logo dla nieustalonych seedów
-    "8 Seed": "https://via.placeholder.com/150/000000/FFFFFF?text=SEED+8",
-    "7 Seed": "https://via.placeholder.com/150/000000/FFFFFF?text=SEED+7"
+    # Placeholder dla nieustalonych seedów
+    "8 Seed": "https://via.placeholder.com/150/ffffff/000000?text=8+SEED",
+    "7 Seed": "https://via.placeholder.com/150/ffffff/000000?text=7+SEED"
 }
 
-# Zaktualizowane pary meczowe ze screena (od góry do dołu)
+# Pary meczowe NBA 2026
 SERIES = [
-    # Zachód
     "Thunder vs 8 Seed", "Lakers vs Rockets", "Nuggets vs Timberwolves", "Spurs vs Trail Blazers",
-    # Wschód
     "Pistons vs 8 Seed", "Cavaliers vs Raptors", "Knicks vs Hawks", "Celtics vs 7 Seed"
 ]
 
-st.set_page_config(page_title="NBA Retro Predictor", page_icon="🏀", layout="wide")
+st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wide")
 
 st.markdown("""
     <style>
@@ -67,7 +64,7 @@ if 'db' not in st.session_state:
 if 'logged_user' not in st.session_state:
     st.session_state.logged_user = None
 
-st.title("🏀 NBA Retro Playoff Challenge")
+st.title("🏀 NBA Playoff 2026")
 now = datetime.now()
 is_locked = now > START_TIME
 
@@ -77,7 +74,7 @@ with tab1:
     if st.session_state.logged_user is None:
         with st.container():
             st.markdown('<div class="login-box">', unsafe_allow_html=True)
-            st.subheader("🔐 Zaloguj się, aby typować retro playoffy")
+            st.subheader("🔐 Zaloguj się")
             col_u, col_p = st.columns(2)
             with col_u:
                 user = st.selectbox("Wybierz gracza:", [""] + PLAYERS, key="login_select")
@@ -88,7 +85,7 @@ with tab1:
                 with col_p:
                     if saved_pwd == "" or saved_pwd == "nan":
                         new_pwd = st.text_input("Ustal hasło:", type="password", key=f"setup_{user}")
-                        if st.button("Ustaw hasło i wejdź"):
+                        if st.button("Zapisz i wejdź"):
                             if len(new_pwd) >= 3:
                                 user_data["PIN"] = str(new_pwd)
                                 st.session_state.db[user] = user_data
@@ -96,7 +93,7 @@ with tab1:
                                 st.session_state.logged_user = user
                                 st.rerun()
                     else:
-                        pwd_input = st.text_input("Wpisz hasło:", type="password", key=f"login_{user}")
+                        pwd_input = st.text_input("Hasło:", type="password", key=f"login_{user}")
                         if st.button("Zaloguj"):
                             if pwd_input == saved_pwd:
                                 st.session_state.logged_user = user
@@ -125,12 +122,12 @@ with tab1:
             st.session_state.db[st.session_state.logged_user] = new_picks
             save_data(st.session_state.db)
             st.balloons()
-            st.success("✅ Retro typy zostały zapisane na serwerze!")
+            st.success("✅ Typy na NBA 2026 zapisane!")
 
 with tab2:
-    st.subheader("Tabela Wyników (Retro Mode)")
+    st.subheader("Tabela Wyników NBA 2026")
     if not st.session_state.db:
-        st.write("Czekamy na retro-typy...")
+        st.write("Brak danych.")
     else:
         display_rows = []
         for p in PLAYERS:
@@ -143,7 +140,7 @@ with tab2:
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
 
 with tab3:
-    st.subheader("📊 Drabinka Retro Playoff")
+    st.subheader("📊 Drabinka Playoff NBA 2026")
     curr_user = st.session_state.logged_user
     u_picks = st.session_state.db.get(curr_user, {}) if curr_user else {}
     
@@ -161,28 +158,26 @@ with tab3:
     c_e, _, c_w = st.columns([1, 0.1, 1])
     with c_e:
         st.markdown("#### 🔵 WSCHÓD")
-        # Pary ze screena (Wschód - prawa kolumna, od góry)
         bracket_card("Pistons", 1, "8 Seed", 8)
         bracket_card("Cavaliers", 4, "Raptors", 5)
-        st.markdown("<br>", unsafe_allow_html=True) # Przerwa między górą a dołem
+        st.markdown("<br>", unsafe_allow_html=True)
         bracket_card("Knicks", 3, "Hawks", 6)
         bracket_card("Celtics", 2, "7 Seed", 7)
     with c_w:
         st.markdown("#### 🔴 ZACHÓD")
-        # Pary ze screena (Zachód - lewa kolumna, od góry)
         bracket_card("Thunder", 1, "8 Seed", 8)
         bracket_card("Lakers", 4, "Rockets", 5)
-        st.markdown("<br>", unsafe_allow_html=True) # Przerwa między górą a dołem
+        st.markdown("<br>", unsafe_allow_html=True)
         bracket_card("Nuggets", 3, "Timberwolves", 6)
         bracket_card("Spurs", 2, "Trail Blazers", 7)
 
 with tab4:
     st.subheader("⚙️ Admin")
-    admin_auth = st.text_input("Hasło admina:", type="password", key="admin_pwd")
+    admin_auth = st.text_input("Kod:", type="password", key="admin_pwd")
     if admin_auth == ADMIN_PIN:
         st.success("Dostęp przyznany")
         if st.session_state.db:
             df_admin = pd.DataFrame.from_dict(st.session_state.db, orient='index')
             st.dataframe(df_admin)
             csv_data = df_admin.to_csv().encode('utf-8')
-            st.download_button(label="Pobierz backup CSV", data=csv_data, file_name="wyniki_nba.csv", mime="text/csv")
+            st.download_button(label="Pobierz backup CSV", data=csv_data, file_name="wyniki_nba_2026.csv", mime="text/csv")
