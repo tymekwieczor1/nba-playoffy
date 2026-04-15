@@ -125,7 +125,7 @@ with tab2:
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
 
 with tab3:
-    st.subheader("Drabinka z Twoimi typami")
+    st.subheader("Drabinka")
     
     # Pobranie typów aktualnie zalogowanego gracza
     user_picks = st.session_state.db.get(st.session_state.logged_user, {}) if st.session_state.logged_user else {}
