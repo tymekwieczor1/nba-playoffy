@@ -37,16 +37,30 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wi
 st.markdown("""
     <style>
     .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
-    .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
-    .res-exact { background-color: rgba(0, 200, 0, 0.2) !important; border-color: rgba(0, 255, 0, 0.5) !important; }
-    .res-winner { background-color: rgba(0, 0, 200, 0.2) !important; border-color: rgba(0, 0, 255, 0.5) !important; }
-    .res-wrong { background-color: rgba(200, 0, 0, 0.2) !important; border-color: rgba(255, 0, 0, 0.5) !important; }
+    
+    /* Główne kontenery konferencji */
+    .conf-container {
+        background-color: rgba(255, 255, 255, 0.03);
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid #333;
+        margin-bottom: 20px;
+    }
+    
+    /* Kafelki meczów */
+    .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
+    .res-exact { background-color: rgba(0, 200, 0, 0.15) !important; border-color: rgba(0, 255, 0, 0.4) !important; }
+    .res-winner { background-color: rgba(0, 0, 200, 0.15) !important; border-color: rgba(0, 0, 255, 0.4) !important; }
+    .res-wrong { background-color: rgba(200, 0, 0, 0.15) !important; border-color: rgba(255, 0, 0, 0.4) !important; }
+    
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
     .pts-normal { background-color: #444; color: #bbb; }
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
     .pts-wrong { background-color: #800000; color: white; }
+    
+    h4 { text-align: center; margin-bottom: 20px !important; letter-spacing: 2px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,6 +98,7 @@ is_locked = now > START_TIME
 
 tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
 
+# --- TAB 1: TYPY ---
 with tab1:
     if st.session_state.logged_user is None:
         with st.container():
@@ -137,6 +152,7 @@ with tab1:
             st.balloons()
             st.success("✅ Typy zapisane!")
 
+# --- TAB 2: RANKING ---
 with tab2:
     st.subheader("Tabela Wyników NBA 2026")
     actual_results = st.session_state.results.get("OFFICIAL", {})
@@ -157,20 +173,21 @@ with tab2:
         df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="SUMA PKT", ascending=False)
         st.dataframe(df_leaderboard, use_container_width=True)
 
+# --- TAB 3: DRABINKA (Z PODKAFELKAMI) ---
 with tab3:
     st.subheader("📊 Drabinka Playoff NBA 2026")
     curr_user = st.session_state.logged_user
     actual_results_db = st.session_state.results.get("OFFICIAL", {})
     u_picks = st.session_state.db.get(curr_user, {}) if curr_user else {}
 
-    def bracket_card_dynamic(t1, seed1, t2, seed2):
+    def render_bracket_card(t1, seed1, t2, seed2):
         match_key = f"{t1} vs {t2}"
         my_pick = u_picks.get(match_key, "-")
         actual_res = actual_results_db.get(match_key, "W toku")
         pts, css_box, css_pts = get_points_logic(my_pick, actual_res)
         status_display = "W toku" if actual_res == "W toku" else f"Wynik: {actual_res}"
         
-        st.markdown(f"""
+        return f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div><span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span></div>
             <div style="text-align: center; margin: 8px 0;">
@@ -182,20 +199,29 @@ with tab3:
             </div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div><span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span></div>
         </div>
-        """, unsafe_allow_html=True)
+        """
 
-    c_e, _, c_w = st.columns([1, 0.1, 1])
-    with c_e:
-        st.markdown("#### 🔵 WSCHÓD")
-        bracket_card_dynamic("Pistons", 1, "8 Seed", 8); bracket_card_dynamic("Cavaliers", 4, "Raptors", 5)
-        st.markdown("<br>", unsafe_allow_html=True)
-        bracket_card_dynamic("Knicks", 3, "Hawks", 6); bracket_card_dynamic("Celtics", 2, "7 Seed", 7)
-    with c_w:
-        st.markdown("#### 🔴 ZACHÓD")
-        bracket_card_dynamic("Thunder", 1, "8 Seed", 8); bracket_card_dynamic("Lakers", 4, "Rockets", 5)
-        st.markdown("<br>", unsafe_allow_html=True)
-        bracket_card_dynamic("Nuggets", 3, "Timberwolves", 6); bracket_card_dynamic("Spurs", 2, "Trail Blazers", 7)
+    col_east, col_west = st.columns(2)
 
+    with col_east:
+        st.markdown('<div class="conf-container"><h4>🔵 WSCHÓD</h4>', unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Pistons", 1, "8 Seed", 8), unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Cavaliers", 4, "Raptors", 5), unsafe_allow_html=True)
+        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Knicks", 3, "Hawks", 6), unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Celtics", 2, "7 Seed", 7), unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_west:
+        st.markdown('<div class="conf-container"><h4>🔴 ZACHÓD</h4>', unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Thunder", 1, "8 Seed", 8), unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Lakers", 4, "Rockets", 5), unsafe_allow_html=True)
+        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Nuggets", 3, "Timberwolves", 6), unsafe_allow_html=True)
+        st.markdown(render_bracket_card("Spurs", 2, "Trail Blazers", 7), unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# --- TAB 4: ADMIN ---
 with tab4:
     st.subheader("⚙️ Panel Administratora")
     admin_auth = st.text_input("Kod:", type="password", key="admin_pwd")
