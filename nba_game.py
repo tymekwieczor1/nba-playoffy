@@ -11,7 +11,6 @@ USER_PINS = {
     "Kowal": "461829", "Paweł": "735106", "Mateusz": "284963", "Tomasz": "619247"
 }
 
-# Linki do logo drużyn (zaktualizowane Denver i poprawiona czytelność)
 LOGOS = {
     "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
     "Heat": "https://loodibee.com/wp-content/uploads/nba-miami-heat-logo.png",
@@ -39,7 +38,6 @@ SERIES = [
 
 st.set_page_config(page_title="NBA Playoff Predictor", page_icon="🏀", layout="wide")
 
-# Stylizacja dla białego tła pod logami i obramowania meczów
 st.markdown("""
     <style>
     .match-box {
@@ -54,6 +52,13 @@ st.markdown("""
         border-radius: 50%;
         padding: 5px;
         display: inline-block;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .user-pick-label {
+        color: #888;
+        font-size: 0.85em;
+        font-style: italic;
+        text-align: right;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -69,6 +74,8 @@ def save_data(data):
 
 if 'db' not in st.session_state:
     st.session_state.db = load_data()
+if 'logged_user' not in st.session_state:
+    st.session_state.logged_user = None
 
 st.title("🏀 NBA Playoff Challenge 2026")
 now = datetime.now()
@@ -79,8 +86,9 @@ tab1, tab2, tab3 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka
 with tab1:
     user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
     if user:
-        pin_input = st.text_input(f"Podaj swój 6-cyfrowy PIN, {user}:", type="password")
+        pin_input = st.text_input(f"Podaj swój PIN, {user}:", type="password")
         if pin_input == USER_PINS[user]:
+            st.session_state.logged_user = user
             st.success(f"Zalogowano jako {user}")
             current_user_data = st.session_state.db.get(user, {})
             new_picks = {}
@@ -112,37 +120,46 @@ with tab2:
             p_data = st.session_state.db.get(p, {})
             for match in SERIES:
                 val = p_data.get(match, "-")
-                row[match] = "🔒" if not is_locked else val
+                row[match] = "🔒" if (not is_locked and p != st.session_state.logged_user) else val
             display_rows.append(row)
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
 
 with tab3:
-    st.subheader("Drabinka Pierwszej Rundy")
+    st.subheader("Drabinka z Twoimi typami")
     
+    # Pobranie typów aktualnie zalogowanego gracza
+    user_picks = st.session_state.db.get(st.session_state.logged_user, {}) if st.session_state.logged_user else {}
+
     def bracket_card(t1, seed1, t2, seed2):
-        with st.container():
-            st.markdown(f"""
-            <div class="match-box">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center;">
-                        <div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div>
-                        <span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span>
-                    </div>
-                </div>
-                <div style="text-align: center; color: #888; font-size: 0.8em; margin: 5px 0;">VS</div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center;">
-                        <div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div>
-                        <span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span>
-                    </div>
+        match_key = f"{t1} vs {t2}"
+        my_pick = user_picks.get(match_key, "-")
+        
+        st.markdown(f"""
+        <div class="match-box">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                    <div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div>
+                    <span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            <div style="display: flex; justify-content: center; align-items: center; margin: 5px 0;">
+                <span style="color: #666; font-size: 0.8em; font-weight: bold; background: #222; padding: 2px 10px; border-radius: 10px;">
+                    {my_pick if st.session_state.logged_user else "zaloguj się, aby widzieć typ"}
+                </span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                    <div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div>
+                    <span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     col_east, col_space, col_west = st.columns([1, 0.1, 1])
     
     with col_east:
-        st.markdown("#### 🔵 KONFERENCJA WSCHODNIA")
+        st.markdown("#### 🔵 WSCHÓD")
         bracket_card("Celtics", 1, "Heat", 8)
         bracket_card("Cavs", 4, "Magic", 5)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -150,7 +167,7 @@ with tab3:
         bracket_card("Knicks", 2, "Sixers", 7)
 
     with col_west:
-        st.markdown("#### 🔴 KONFERENCJA ZACHODNIA")
+        st.markdown("#### 🔴 ZACHÓD")
         bracket_card("Thunder", 1, "Pelicans", 8)
         bracket_card("Clippers", 4, "Mavericks", 5)
         st.markdown("<br>", unsafe_allow_html=True)
