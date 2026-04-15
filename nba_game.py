@@ -37,18 +37,13 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wi
 st.markdown("""
     <style>
     .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
-    
-    /* Kafelki */
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .res-exact { background-color: rgba(0, 200, 0, 0.2) !important; border-color: rgba(0, 255, 0, 0.5) !important; }
     .res-winner { background-color: rgba(0, 0, 200, 0.2) !important; border-color: rgba(0, 0, 255, 0.5) !important; }
     .res-wrong { background-color: rgba(200, 0, 0, 0.2) !important; border-color: rgba(255, 0, 0, 0.5) !important; }
-    
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-    
-    /* Punkty */
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
-    .pts-normal { background-color: #444; color: #bbb; } /* Szary dla 0 pkt / w toku */
+    .pts-normal { background-color: #444; color: #bbb; }
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
     .pts-wrong { background-color: #800000; color: white; }
@@ -68,18 +63,22 @@ def get_points_logic(user_pick, actual_result):
     if actual_result == "W toku" or actual_result == "" or pd.isna(actual_result) or user_pick == "-":
         return 0, "", "pts-normal"
     
+    # 1. Dokładny wynik (3pkt za zwycięzcę + 2pkt za wynik = 5pkt)
     if user_pick == actual_result:
-        return 2, "res-exact", "pts-exact"
+        return 5, "res-exact", "pts-exact"
     
     try:
         u_scores = user_pick.split("-")
         a_scores = actual_result.split("-")
         u_left_wins = int(u_scores[0]) == 4
         a_left_wins = int(a_scores[0]) == 4
+        
+        # 2. Tylko zwycięzca (3pkt)
         if u_left_wins == a_left_wins:
-            return 1, "res-winner", "pts-winner"
+            return 3, "res-winner", "pts-winner"
     except: pass
     
+    # 3. Pudło (0pkt)
     return 0, "res-wrong", "pts-wrong"
 
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
@@ -177,7 +176,6 @@ with tab3:
         actual_res = actual_results_db.get(match_key, "W toku")
         pts, css_box, css_pts = get_points_logic(my_pick, actual_res)
         
-        # Wyświetlanie statusu i punktów (zawsze +0 pkt jeśli w toku)
         status_display = "W toku" if actual_res == "W toku" else f"Wynik: {actual_res}"
         pts_display = f"+{pts} pkt"
         
