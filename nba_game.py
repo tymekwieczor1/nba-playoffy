@@ -88,7 +88,7 @@ BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET["W_CF"
 
 ALL_KEYS = list(BRACKET.keys())
 
-# --- 4. CSS (POPRAWIONE RAMKI) ---
+# --- 4. CSS (LOGA W RAMKACH) ---
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="centered")
 
 st.markdown("""
@@ -100,21 +100,34 @@ st.markdown("""
         border: 1px solid #333; 
         margin-bottom: 30px; 
     }
-    .team-container {
-        padding: 15px;
+    /* Styl kontenera drużyny */
+    .team-box {
         border-radius: 15px;
-        border: 2px solid #444;
+        padding: 15px;
         text-align: center;
-        transition: 0.3s;
+        border: 2px solid #444;
         background: rgba(255,255,255,0.02);
+        transition: 0.3s;
     }
+    /* Podświetlenie na niebiesko */
     .selected-blue { 
         border: 3px solid #0099ff !important; 
-        background: rgba(0, 153, 255, 0.15) !important;
-        box-shadow: 0 0 15px rgba(0, 153, 255, 0.3);
+        background: rgba(0, 153, 255, 0.1) !important;
+        box-shadow: 0 0 10px rgba(0, 153, 255, 0.3);
     }
-    .unselected { opacity: 0.6; }
+    .unselected { opacity: 0.5; }
     
+    .stButton > button {
+        width: 100%;
+        background-color: transparent !important;
+        border: 1px solid #555 !important;
+        color: white !important;
+    }
+    .stButton > button:hover {
+        border-color: #0099ff !important;
+        color: #0099ff !important;
+    }
+
     .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #f82910; font-weight: bold; }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
     .pts-exact { background-color: #008000; color: white; }
@@ -128,7 +141,7 @@ st.markdown("""
 
 tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
 
-# --- ZAKŁADKA TYPY ---
+# --- TYPY ---
 with tab1:
     if st.session_state.logged_user is None:
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
@@ -160,19 +173,23 @@ with tab1:
             c1, c2 = st.columns(2)
             
             with c1:
-                st.markdown(f'<div class="team-container {"selected-blue" if left_wins else "unselected"}">', unsafe_allow_html=True)
-                st.image(LOGOS.get(t1, LOGOS["TBD"]), width=80)
-                if st.button(f"Win {t1}", key=f"bt1_{k}", disabled=is_locked):
+                # Otwarcie ramki
+                st.markdown(f'<div class="team-box {"selected-blue" if left_wins else "unselected"}">', unsafe_allow_html=True)
+                st.image(LOGOS.get(t1, LOGOS["TBD"]), width=70)
+                if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked):
                     st.session_state.temp_picks[k] = f"4-{num_games-4}"
                     st.rerun()
+                # Zamknięcie ramki
                 st.markdown('</div>', unsafe_allow_html=True)
 
             with c2:
-                st.markdown(f'<div class="team-container {"selected-blue" if not left_wins else "unselected"}">', unsafe_allow_html=True)
-                st.image(LOGOS.get(t2, LOGOS["TBD"]), width=80)
-                if st.button(f"Win {t2}", key=f"bt2_{k}", disabled=is_locked):
+                # Otwarcie ramki
+                st.markdown(f'<div class="team-box {"selected-blue" if not left_wins else "unselected"}">', unsafe_allow_html=True)
+                st.image(LOGOS.get(t2, LOGOS["TBD"]), width=70)
+                if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked):
                     st.session_state.temp_picks[k] = f"{num_games-4}-4"
                     st.rerun()
+                # Zamknięcie ramki
                 st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
@@ -182,7 +199,7 @@ with tab1:
             if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
             else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
             
-            st.markdown(f'<p style="margin-top:10px">Aktualny wybór: <b>{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="margin-top:10px; font-size: 0.9em;">Twój typ: <b>{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
@@ -212,7 +229,7 @@ with tab3:
         st.markdown(f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Typ: {u_pick} <span class="pts-badge {css_pts}">+{pts}</span></div>
+            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick} <span class="pts-badge {css_pts}">+{pts}</span></div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
         </div>
         """, unsafe_allow_html=True)
