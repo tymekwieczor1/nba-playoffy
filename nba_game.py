@@ -67,23 +67,25 @@ with tab1:
     user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
     if user:
         user_data = st.session_state.db.get(user, {})
-        saved_pin = str(user_data.get("PIN", ""))
+        saved_pwd = str(user_data.get("PIN", "")) # Pole w bazie nadal nazywa się PIN dla kompatybilności
 
-        if saved_pin == "" or saved_pin == "nan":
-            st.warning(f"Cześć {user}! Ustal swój 6-cyfrowy PIN.")
-            new_pin = st.text_input("Ustal swój PIN:", type="password", key="setup_pin")
-            if st.button("Zapisz mój PIN"):
-                if len(new_pin) >= 4:
-                    user_data["PIN"] = new_pin
+        if saved_pwd == "" or saved_pwd == "nan":
+            st.warning(f"Cześć {user}! Nie masz jeszcze ustalonego hasła.")
+            new_pwd = st.text_input("Ustal swoje hasło dostępu:", type="password", key=f"setup_{user}")
+            if st.button("Zapisz moje hasło"):
+                if len(new_pwd) >= 3:
+                    user_data["PIN"] = new_pwd
                     st.session_state.db[user] = user_data
                     save_data(st.session_state.db)
-                    st.success("PIN zapisany! Odśwież stronę i zaloguj się.")
+                    st.success("Hasło zapisane! Teraz wpisz je poniżej, aby się zalogować.")
                     st.rerun()
                 else:
-                    st.error("PIN musi mieć minimum 4 znaki.")
+                    st.error("Hasło musi mieć minimum 3 znaki.")
         else:
-            pin_input = st.text_input(f"Podaj PIN dla {user}:", type="password")
-            if pin_input == saved_pin:
+            # Używamy unikalnego klucza dla każdego użytkownika, aby uniknąć błędów walidacji
+            pwd_input = st.text_input(f"Podaj hasło dla {user}:", type="password", key=f"login_{user}")
+            
+            if pwd_input == saved_pwd:
                 st.session_state.logged_user = user
                 st.success(f"Zalogowano jako {user}")
                 
@@ -98,17 +100,17 @@ with tab1:
                     new_picks[match] = pick
                 
                 if st.button("Zapisz moje typy", disabled=is_locked, use_container_width=True):
-                    new_picks["PIN"] = saved_pin
+                    new_picks["PIN"] = saved_pwd
                     st.session_state.db[user] = new_picks
                     save_data(st.session_state.db)
                     st.success("✅ Typy zapisane!")
-            elif pin_input != "":
-                st.error("Błędny PIN!")
+            elif pwd_input != "":
+                st.error("Błędne hasło! Spróbuj ponownie.")
 
 with tab2:
     st.subheader("Tabela Wyników")
     if not st.session_state.db:
-        st.write("Czekamy na pierwsze zapisy...")
+        st.write("Brak danych.")
     else:
         display_rows = []
         for p in PLAYERS:
@@ -137,36 +139,24 @@ with tab3:
     c_e, _, c_w = st.columns([1, 0.1, 1])
     with c_e:
         st.markdown("#### 🔵 WSCHÓD")
-        bracket_card("Celtics", 1, "Heat", 8)
-        bracket_card("Cavs", 4, "Magic", 5)
-        bracket_card("Bucks", 3, "Pacers", 6)
-        bracket_card("Knicks", 2, "Sixers", 7)
+        bracket_card("Celtics", 1, "Heat", 8); bracket_card("Cavs", 4, "Magic", 5)
+        st.markdown("<br>", unsafe_allow_html=True)
+        bracket_card("Bucks", 3, "Pacers", 6); bracket_card("Knicks", 2, "Sixers", 7)
     with c_w:
         st.markdown("#### 🔴 ZACHÓD")
-        bracket_card("Thunder", 1, "Pelicans", 8)
-        bracket_card("Clippers", 4, "Mavericks", 5)
-        bracket_card("Timberwolves", 3, "Suns", 6)
-        bracket_card("Nuggets", 2, "Lakers", 7)
+        bracket_card("Thunder", 1, "Pelicans", 8); bracket_card("Clippers", 4, "Mavericks", 5)
+        st.markdown("<br>", unsafe_allow_html=True)
+        bracket_card("Timberwolves", 3, "Suns", 6); bracket_card("Nuggets", 2, "Lakers", 7)
 
 with tab4:
     st.subheader("Panel Administratora")
-    admin_auth = st.text_input("Podaj kod administratora:", type="password")
+    admin_auth = st.text_input("Hasło admina:", type="password", key="admin_pwd")
     if admin_auth == ADMIN_PIN:
         st.success("Dostęp przyznany")
         if st.session_state.db:
             df_admin = pd.DataFrame.from_dict(st.session_state.db, orient='index')
-            st.write("Aktualna baza danych (piny i typy):")
             st.dataframe(df_admin)
-            
-            # Generowanie pliku CSV do pobrania
             csv_data = df_admin.to_csv().encode('utf-8')
-            st.download_button(
-                label="Pobierz plik wyniki.csv",
-                data=csv_data,
-                file_name="wyniki_backup.csv",
-                mime="text/csv",
-            )
-        else:
-            st.info("Baza danych jest pusta.")
+            st.download_button(label="Pobierz backup CSV", data=csv_data, file_name="wyniki_nba.csv", mime="text/csv")
     elif admin_auth != "":
-        st.error("Błędny kod administratora")
+        st.error("Błąd autoryzacji")
