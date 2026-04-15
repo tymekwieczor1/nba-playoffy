@@ -93,6 +93,26 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 
 st.markdown("""
     <style>
+    /* --- NOWE: MENU ZAKŁADEK (TABS) ZAWSZE NA GÓRZE I WIĘKSZE --- */
+    div[data-testid="stTabs"] > div:first-child {
+        position: sticky;
+        top: 40px; /* Offset na domyślny pasek Streamlit */
+        z-index: 999;
+        background-color: #0e1117; /* Ciemne tło, by ukryć przewijany tekst */
+        padding: 10px 0 15px 0;
+        border-bottom: 2px solid #333;
+    }
+    
+    button[data-baseweb="tab"] p, button[data-baseweb="tab"] div {
+        font-size: 26px !important; /* Znacznie większa czcionka zakładek */
+        font-weight: bold !important;
+    }
+
+    button[data-baseweb="tab"] {
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+    }
+
     .match-card { 
         margin-bottom: 20px; 
     }
@@ -105,7 +125,7 @@ st.markdown("""
         border: 2px solid #444;
         background: rgba(255,255,255,0.02);
         transition: 0.3s;
-        height: 140px; /* Zmniejszono z 160px na 140px */
+        height: 140px; 
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -113,7 +133,7 @@ st.markdown("""
     }
     .team-box img {
         margin-bottom: 10px;
-        max-height: 60px; /* Zmniejszono logo z 70px */
+        max-height: 60px; 
         object-fit: contain;
     }
     
@@ -186,7 +206,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
+tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka", "⚙️ Admin"])
 
 # --- TYPY ---
 with tab1:
@@ -208,7 +228,7 @@ with tab1:
         
         is_locked = now > START_TIME
 
-        # Zamiast prostej pętli, dzielimy klucze na grupy (etapy turnieju)
+        # Grupowanie meczów ze względu na etapy
         STAGE_GROUPS = [
             ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
             ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
@@ -218,7 +238,6 @@ with tab1:
         ]
 
         for stage_name, keys in STAGE_GROUPS:
-            # Nagłówek etapu
             st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
             
             for i, k in enumerate(keys):
@@ -261,7 +280,6 @@ with tab1:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Zmniejszony napis wyboru gier
                 st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
                 
                 selected_games = st.selectbox(
@@ -276,11 +294,10 @@ with tab1:
                 if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
                 else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
                 
-                # Stonowany napis wyniku
                 st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Linia oddzielająca mecze (dodana dla każdego meczu oprócz ostatniego w danym etapie)
+                # Linia oddzielająca (wyświetlana pomiędzy meczami, ale nie na końcu grupy)
                 if i < len(keys) - 1:
                     st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
