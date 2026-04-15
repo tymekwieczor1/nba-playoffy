@@ -158,18 +158,6 @@ st.markdown("""
     .stButton > button { width: 100%; background-color: transparent !important; border: 1px solid #555 !important; color: white !important; }
     .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
 
-    /* --- NOWE STYLE DLA PRZYCISKÓW ZAPISZ I USUŃ --- */
-    .save-btn-col .stButton > button { 
-        border-color: #28a745 !important; 
-        color: #28a745 !important; 
-        background-color: rgba(40, 167, 69, 0.1) !important;
-        font-size: 1.1em !important;
-        padding: 10px !important;
-        min-height: 55px !important;
-        margin-top: 5px;
-    }
-    .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
-
     .clear-btn-col .stButton > button { 
         border-color: #ff4b4b !important; 
         color: #ff4b4b !important; 
@@ -180,6 +168,17 @@ st.markdown("""
         margin-top: 5px;
     }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
+    
+    .save-btn-col .stButton > button { 
+        border-color: #28a745 !important; 
+        color: #28a745 !important; 
+        background-color: rgba(40, 167, 69, 0.1) !important;
+        font-size: 1.1em !important;
+        padding: 10px !important;
+        min-height: 55px !important;
+        margin-top: 5px;
+    }
+    .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
 
     div[data-baseweb="select"] { font-size: 20px !important; }
     div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
@@ -277,18 +276,18 @@ with tab1:
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
                     st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t1,"-")}</span></div>', unsafe_allow_html=True)
-                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked):
+                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
                     st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t2,"-")}</span></div>', unsafe_allow_html=True)
-                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked):
+                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
                 if current_val != "-":
                     st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
-                    if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled):
+                    if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
                         st.session_state.temp_picks[f"hot_{k}"] = "True" if not is_hot else "False"
                         if not is_hot: st.toast("🔥 HOT TAKE AKTYWOWANY! 🔥")
                         st.rerun()
@@ -315,7 +314,7 @@ with tab1:
 
                 with colC:
                     st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
-                    if st.button("🗑️ Usuń", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
+                    if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
                         st.session_state.temp_picks[k] = "-"; st.session_state.temp_picks[f"hot_{k}"] = "False"
                         if f"sl_{k}" in st.session_state: del st.session_state[f"sl_{k}"]
                         st.rerun()
