@@ -47,7 +47,6 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
-# --- TUTAJ WPISUJESZ KURSY BUKMACHERSKIE ---
 ODDS = {
     "Thunder": 1.25,
     "8 Seed": 3.50,
@@ -146,7 +145,6 @@ st.markdown("""
         position: sticky; top: 40px; z-index: 999;
         background-color: #0e1117; padding: 10px 0 15px 0; border-bottom: 2px solid #333;
     }
-    
     button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 26px !important; font-weight: bold !important; }
     button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
     .match-card { margin-bottom: 20px; }
@@ -176,6 +174,9 @@ st.markdown("""
     
     .stButton > button { width: 100%; background-color: transparent !important; border: 1px solid #555 !important; color: white !important; }
     .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
+
+    .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; margin-top: 10px; }
+    .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.1) !important; }
 
     div[data-baseweb="select"] { font-size: 20px !important; }
     div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
@@ -241,9 +242,22 @@ with tab1:
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                current_val = st.session_state.temp_picks.get(k, "4-0")
-                if pd.isna(current_val) or not isinstance(current_val, str) or "-" not in str(current_val):
-                    current_val = "4-0"
+                # --- BEZPIECZNE POBIERANIE STANU (Z BRAKIEM WYBORU NA START) ---
+                current_val = st.session_state.temp_picks.get(k, "-")
+                left_selected = False
+                right_selected = False
+                num_games = None
+
+                if current_val != "-" and "-" in str(current_val):
+                    try:
+                        parts = str(current_val).split("-")
+                        left_selected = int(parts[0]) == 4
+                        right_selected = int(parts[1]) == 4
+                        num_games = sum(map(int, parts))
+                    except:
+                        current_val = "-"
+                else:
+                    current_val = "-"
                 
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
                 match_locked = is_global_locked or is_match_result_known
@@ -251,10 +265,10 @@ with tab1:
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
                 can_use_hot = is_hot or (hot_takes_used < 2)
-                hot_disabled = match_locked or not can_use_hot
-
-                left_wins = int(current_val.split("-")[0]) == 4
-                num_games = sum(map(int, current_val.split("-")))
+                
+                # Opcje powiązane (hot take, selectbox) są wyłączone, dopóki ktoś nie wybierze wygranej drużyny
+                options_disabled = match_locked or current_val == "-"
+                hot_disabled = options_disabled or not can_use_hot
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
@@ -264,27 +278,29 @@ with tab1:
                 logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
                 
                 with c1:
+                    css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
                     st.markdown(f'''
-                    <div class="team-box {"selected-blue" if left_wins else "unselected"}">
+                    <div class="team-box {css_class}">
                         <img src="{logo_t1}" alt="{t1}">
                         <span style="font-weight: bold; font-size: 1.1em;">{t1}</span>
                         <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t1, "-")}</span>
                     </div>
                     ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"4-{num_games-4}"
+                        st.session_state.temp_picks[k] = f"4-{num_games-4 if num_games else 0}"
                         st.rerun()
 
                 with c2:
+                    css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
                     st.markdown(f'''
-                    <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
+                    <div class="team-box {css_class}">
                         <img src="{logo_t2}" alt="{t2}">
                         <span style="font-weight: bold; font-size: 1.1em;">{t2}</span>
                         <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t2, "-")}</span>
                     </div>
                     ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"{num_games-4}-4"
+                        st.session_state.temp_picks[k] = f"{num_games-4 if num_games else 0}-4"
                         st.rerun()
                 
                 st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
@@ -303,17 +319,42 @@ with tab1:
                 selected_games = st.selectbox(
                     f"Ukryty Label {k}", 
                     [4, 5, 6, 7], 
-                    index=[4, 5, 6, 7].index(num_games), 
+                    index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else None, 
+                    placeholder="Najpierw wybierz drużynę...",
                     key=f"sl_{k}", 
-                    disabled=match_locked,
+                    disabled=options_disabled,
                     label_visibility="collapsed"
                 )
                 
-                if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
-                else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
+                # Zmiana wyboru w selekcie zapisuje się do state'u
+                if selected_games is not None and current_val != "-":
+                    if left_selected: 
+                        new_val = f"4-{selected_games-4}"
+                        if current_val != new_val:
+                            st.session_state.temp_picks[k] = new_val
+                            st.rerun()
+                    elif right_selected: 
+                        new_val = f"{selected_games-4}-4"
+                        if current_val != new_val:
+                            st.session_state.temp_picks[k] = new_val
+                            st.rerun()
                 
-                hot_icon_display = " 🔥" if is_hot else ""
-                st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}{hot_icon_display}</b></p>', unsafe_allow_html=True)
+                colA, colB = st.columns([3, 1])
+                with colA:
+                    if current_val == "-":
+                        st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #ff4b4b;">BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
+                    else:
+                        hot_icon_display = " 🔥" if is_hot else ""
+                        st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{current_val}{hot_icon_display}</b></p>', unsafe_allow_html=True)
+                
+                with colB:
+                    st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
+                    if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
+                        st.session_state.temp_picks[k] = "-"
+                        st.session_state.temp_picks[f"hot_{k}"] = "False"
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 if i < len(valid_keys) - 1:
@@ -353,17 +394,18 @@ with tab3:
         
         is_hot_str = str(u_data.get(f"hot_{k}", "False")).lower()
         is_hot = (is_hot_str == "true")
-        hot_icon = " 🔥" if is_hot else ""
+        hot_icon = " 🔥" if is_hot and u_pick != "-" else ""
 
         a_res = actual_res_db.get(k, "W toku")
         pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot)
         
         pts_str = format_score(pts)
+        u_pick_display = "BRAK" if u_pick == "-" else f"{u_pick}{hot_icon}"
         
         st.markdown(f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick}{hot_icon} <span class="pts-badge {css_pts}">{pts_str}</span></div>
+            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick_display} <span class="pts-badge {css_pts}">{pts_str}</span></div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
         </div>
         """, unsafe_allow_html=True)
