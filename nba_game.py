@@ -10,7 +10,6 @@ now = datetime.now()
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
-# Stałe 6-cyfrowe PIN-y dla każdego gracza
 PLAYER_PINS = {
     "Tymek": "839201",
     "Soból": "471029",
@@ -21,7 +20,6 @@ PLAYER_PINS = {
     "Tomasz": "740285"
 }
 
-# Mnożniki punktowe dla poszczególnych etapów
 MULTIPLIERS = {
     "W1": 1.0, "W2": 1.0, "W3": 1.0, "W4": 1.0,
     "E1": 1.0, "E2": 1.0, "E3": 1.0, "E4": 1.0,
@@ -59,16 +57,24 @@ def load_data(filename):
 def save_data(data, filename):
     pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
-def get_points_logic(user_pick, actual_result, multiplier=1.0):
+def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False):
     if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
         return 0, "", "pts-normal"
-    if str(user_pick) == str(actual_result): 
-        return 5 * multiplier, "res-exact", "pts-exact"
+    
+    pts = 0
     try:
         u_left_wins = int(str(user_pick).split("-")[0]) == 4
         a_left_wins = int(str(actual_result).split("-")[0]) == 4
-        if u_left_wins == a_left_wins: 
-            return 3 * multiplier, "res-winner", "pts-winner"
+        
+        if str(user_pick) == str(actual_result): 
+            pts = 5 * multiplier
+            if is_hot_take: pts += 5  # +2 za zwycięzcę, +3 za idealny wynik (omija mnożnik)
+            return pts, "res-exact", "pts-exact"
+            
+        elif u_left_wins == a_left_wins: 
+            pts = 3 * multiplier
+            if is_hot_take: pts += 2  # +2 za samego zwycięzcę (omija mnożnik)
+            return pts, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
 
@@ -83,7 +89,6 @@ def get_winner(match_key, results, teams):
     return "TBD"
 
 def format_score(pts):
-    # Pomocnicza funkcja do ładnego formatowania liczby z plusem (usuwa .0, jeśli całkowita)
     return f"+{int(pts)}" if pts % 1 == 0 else f"+{round(pts, 1)}"
 
 # --- 3. INICJALIZACJA ---
@@ -127,99 +132,44 @@ st.markdown("""
         border-bottom: 2px solid #333;
     }
     
-    button[data-baseweb="tab"] p, button[data-baseweb="tab"] div {
-        font-size: 26px !important; 
-        font-weight: bold !important;
-    }
-
-    button[data-baseweb="tab"] {
-        padding-top: 15px !important;
-        padding-bottom: 15px !important;
-    }
-
-    .match-card { 
-        margin-bottom: 20px; 
-    }
+    button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 26px !important; font-weight: bold !important; }
+    button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
+    .match-card { margin-bottom: 20px; }
     
     /* --- KONTENER DRUŻYNY --- */
     .team-box {
-        border-radius: 15px;
-        padding: 15px;
-        text-align: center;
-        border: 2px solid #444;
-        background: rgba(255,255,255,0.02);
-        transition: 0.3s;
-        height: 140px; 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        border-radius: 15px; padding: 15px; text-align: center; border: 2px solid #444;
+        background: rgba(255,255,255,0.02); transition: 0.3s; height: 140px; 
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .team-box img {
-        margin-bottom: 10px;
-        max-height: 60px; 
-        object-fit: contain;
-    }
+    .team-box img { margin-bottom: 10px; max-height: 60px; object-fit: contain; }
     
-    /* --- TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
-    div.element-container:has(.team-box) + div.element-container {
-        margin-top: -140px; 
-        position: relative;
-        z-index: 10;
-    }
-    div.element-container:has(.team-box) + div.element-container button {
-        height: 140px; 
-        opacity: 0 !important; 
-        cursor: pointer;
-    }
+    div.element-container:has(.team-box) + div.element-container { margin-top: -140px; position: relative; z-index: 10; }
+    div.element-container:has(.team-box) + div.element-container button { height: 140px; opacity: 0 !important; cursor: pointer; }
 
-    /* Podświetlenie na niebiesko */
-    .selected-blue { 
-        border: 3px solid #0099ff !important; 
-        background: rgba(0, 153, 255, 0.1) !important;
-        box-shadow: 0 0 10px rgba(0, 153, 255, 0.3);
+    /* --- KONTENER HOT TAKE --- */
+    .hot-box {
+        border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
+        background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px;
+        display: flex; align-items: center; justify-content: center; margin-top: 15px; margin-bottom: 15px;
     }
-    .unselected { opacity: 0.5; }
+    .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
     
-    .stButton > button {
-        width: 100%;
-        background-color: transparent !important;
-        border: 1px solid #555 !important;
-        color: white !important;
-    }
-    .stButton > button:hover {
-        border-color: #0099ff !important;
-        color: #0099ff !important;
-    }
+    div.element-container:has(.hot-box) + div.element-container { margin-top: -90px; position: relative; z-index: 10; }
+    div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
 
-    /* --- CZCIONKA W MENU ROZWIJANYM (STONOWANA) --- */
-    div[data-baseweb="select"] {
-        font-size: 20px !important; 
-    }
-    div[data-baseweb="select"] > div {
-        font-size: 20px !important;
-        min-height: 50px !important; 
-    }
-    div[data-baseweb="popover"] ul li {
-        font-size: 20px !important; 
-        padding: 10px !important; 
-    }
-
-    /* Wygląd nagłówków etapów */
-    .round-header { 
-        background-color: #1e1e1e; 
-        padding: 15px; 
-        border-radius: 10px; 
-        text-align: center; 
-        margin: 40px 0 30px 0; 
-        border-left: 5px solid #f82910; 
-        border-right: 5px solid #f82910;
-        font-weight: bold; 
-        font-size: 1.4em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
+    /* Różne style */
+    .selected-blue { border: 3px solid #0099ff !important; background: rgba(0, 153, 255, 0.1) !important; box-shadow: 0 0 10px rgba(0, 153, 255, 0.3); }
+    .unselected { opacity: 0.5; filter: grayscale(50%); }
     
+    .stButton > button { width: 100%; background-color: transparent !important; border: 1px solid #555 !important; color: white !important; }
+    .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
+
+    div[data-baseweb="select"] { font-size: 20px !important; }
+    div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
+    div[data-baseweb="popover"] ul li { font-size: 20px !important; padding: 10px !important; }
+
+    .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
@@ -252,7 +202,16 @@ with tab1:
             st.session_state.logged_user = None
             st.rerun()
         
-        is_locked = now > START_TIME
+        is_global_locked = now > START_TIME
+
+        # Zliczanie użytych Hot Take'ów
+        hot_takes_used = sum(1 for k in ALL_KEYS if str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true")
+        
+        st.markdown(f"""
+        <div style="background-color: rgba(255, 75, 75, 0.1); padding: 15px; border-radius: 10px; border: 1px solid #ff4b4b; text-align: center; margin-top: 20px; margin-bottom: 20px;">
+            <span style="font-size: 1.2em; font-weight: bold; color: #ff4b4b;">🔥 Wykorzystane Hot Take'i: {hot_takes_used} / 2 🔥</span>
+        </div>
+        """, unsafe_allow_html=True)
 
         STAGE_GROUPS = [
             ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
@@ -264,20 +223,28 @@ with tab1:
 
         for stage_name, keys in STAGE_GROUPS:
             valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
-            if not valid_keys:
-                continue
+            if not valid_keys: continue
 
-            st.markdown(f'<div class="round-header">{stage_name} (mnożnik x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                # --- ZABEZPIECZENIE PRZED BŁĘDEM ATTRIBUTEERROR ---
+                # Zabezpieczenie przed błędem z pustym wynikiem
                 current_val = st.session_state.temp_picks.get(k, "4-0")
                 if pd.isna(current_val) or not isinstance(current_val, str) or "-" not in str(current_val):
                     current_val = "4-0"
-                # ----------------------------------------------------
                 
+                # Status meczu (czy Admin już coś wpisał?)
+                is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
+                match_locked = is_global_locked or is_match_result_known
+
+                # Status Hot Take
+                is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
+                is_hot = (is_hot_str == "true")
+                can_use_hot = is_hot or (hot_takes_used < 2)
+                hot_disabled = match_locked or not can_use_hot
+
                 left_wins = int(current_val.split("-")[0]) == 4
                 num_games = sum(map(int, current_val.split("-")))
 
@@ -285,34 +252,31 @@ with tab1:
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
                 c1, c2 = st.columns(2)
-                
                 logo_t1 = LOGOS.get(t1, LOGOS["TBD"])
                 logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
                 
                 with c1:
-                    st.markdown(f'''
-                    <div class="team-box {"selected-blue" if left_wins else "unselected"}">
-                        <img src="{logo_t1}" alt="{t1}">
-                        <span style="font-weight: bold; font-size: 1.1em;">{t1}</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked, use_container_width=True):
+                    st.markdown(f'<div class="team-box {"selected-blue" if left_wins else "unselected"}"><img src="{logo_t1}" alt="{t1}"><span style="font-weight: bold; font-size: 1.1em;">{t1}</span></div>', unsafe_allow_html=True)
+                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"
                         st.rerun()
 
                 with c2:
-                    st.markdown(f'''
-                    <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
-                        <img src="{logo_t2}" alt="{t2}">
-                        <span style="font-weight: bold; font-size: 1.1em;">{t2}</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked, use_container_width=True):
+                    st.markdown(f'<div class="team-box {"selected-blue" if not left_wins else "unselected"}"><img src="{logo_t2}" alt="{t2}"><span style="font-weight: bold; font-size: 1.1em;">{t2}</span></div>', unsafe_allow_html=True)
+                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"
                         st.rerun()
                 
+                # Przycisk HOT TAKE
+                st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
+                if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
+                    if is_hot:
+                        st.session_state.temp_picks[f"hot_{k}"] = "False"
+                    else:
+                        st.session_state.temp_picks[f"hot_{k}"] = "True"
+                        st.toast("🔥 BOOM! HOT TAKE AKTYWOWANY! 🔥")
+                    st.rerun()
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
@@ -322,21 +286,24 @@ with tab1:
                     [4, 5, 6, 7], 
                     index=[4, 5, 6, 7].index(num_games), 
                     key=f"sl_{k}", 
-                    disabled=is_locked,
+                    disabled=match_locked,
                     label_visibility="collapsed"
                 )
                 
                 if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
                 else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
                 
-                st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+                # Dodano wyświetlanie ikony 🔥 obok typu, jeśli aktywowano
+                hot_icon_display = " 🔥" if is_hot else ""
+                st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}{hot_icon_display}</b></p>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 if i < len(valid_keys) - 1:
                     st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
+        # Zapis blokujemy tylko globalnie (żeby można było dopisywać do nowych meczów)
+        if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_global_locked):
             st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
             save_data(st.session_state.db, "wyniki.csv")
             st.balloons()
@@ -348,9 +315,13 @@ with tab2:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k])[0] for k in ALL_KEYS)
+        pts = 0
+        for k in ALL_KEYS:
+            is_hot_str = str(p_data.get(f"hot_{k}", "False")).lower()
+            is_hot = (is_hot_str == "true")
+            match_pts = get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot)[0]
+            pts += match_pts
         
-        # Jeśli punkty to liczba całkowita, zapisz bez .0 (np. 15.0 -> 15)
         pts_display = int(pts) if pts % 1 == 0 else round(pts, 1)
         leaderboard.append({"Gracz": p, "Suma": pts_display})
         
@@ -360,16 +331,22 @@ with tab2:
 with tab3:
     def draw_bracket_card(k):
         t1, t2, s1, s2 = BRACKET[k]
-        u_pick = st.session_state.db.get(st.session_state.logged_user, {}).get(k, "-") if st.session_state.logged_user else "-"
+        u_data = st.session_state.db.get(st.session_state.logged_user, {})
+        u_pick = u_data.get(k, "-") if st.session_state.logged_user else "-"
+        
+        is_hot_str = str(u_data.get(f"hot_{k}", "False")).lower()
+        is_hot = (is_hot_str == "true")
+        hot_icon = " 🔥" if is_hot else ""
+
         a_res = actual_res_db.get(k, "W toku")
-        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k])
+        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot)
         
         pts_str = format_score(pts)
         
         st.markdown(f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick} <span class="pts-badge {css_pts}">{pts_str}</span></div>
+            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick}{hot_icon} <span class="pts-badge {css_pts}">{pts_str}</span></div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
         </div>
         """, unsafe_allow_html=True)
