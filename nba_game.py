@@ -141,7 +141,7 @@ with tab3:
                 <span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        "", unsafe_allow_html=True)
 
     col_e, _, col_w = st.columns([1, 0.1, 1])
     with col_e:
