@@ -21,6 +21,15 @@ PLAYER_PINS = {
     "Tomasz": "740285"
 }
 
+# Mnożniki punktowe dla poszczególnych etapów
+MULTIPLIERS = {
+    "W1": 1.0, "W2": 1.0, "W3": 1.0, "W4": 1.0,
+    "E1": 1.0, "E2": 1.0, "E3": 1.0, "E4": 1.0,
+    "W_SF1": 1.3, "W_SF2": 1.3, "E_SF1": 1.3, "E_SF2": 1.3,
+    "W_CF": 1.6, "E_CF": 1.6,
+    "FINALS": 2.0
+}
+
 LOGOS = {
     "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
     "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
@@ -50,16 +59,16 @@ def load_data(filename):
 def save_data(data, filename):
     pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
-def get_points_logic(user_pick, actual_result):
+def get_points_logic(user_pick, actual_result, multiplier=1.0):
     if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
         return 0, "", "pts-normal"
     if str(user_pick) == str(actual_result): 
-        return 5, "res-exact", "pts-exact"
+        return 5 * multiplier, "res-exact", "pts-exact"
     try:
         u_left_wins = int(str(user_pick).split("-")[0]) == 4
         a_left_wins = int(str(actual_result).split("-")[0]) == 4
         if u_left_wins == a_left_wins: 
-            return 3, "res-winner", "pts-winner"
+            return 3 * multiplier, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
 
@@ -72,6 +81,10 @@ def get_winner(match_key, results, teams):
         if int(s[1]) == 4: return teams[1]
     except: pass
     return "TBD"
+
+def format_score(pts):
+    # Pomocnicza funkcja do ładnego formatowania liczby z plusem (usuwa .0, jeśli całkowita)
+    return f"+{int(pts)}" if pts % 1 == 0 else f"+{round(pts, 1)}"
 
 # --- 3. INICJALIZACJA ---
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
@@ -254,7 +267,7 @@ with tab1:
             if not valid_keys:
                 continue
 
-            st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="round-header">{stage_name} (mnożnik x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
@@ -335,9 +348,13 @@ with tab2:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"))[0] for k in ALL_KEYS)
-        leaderboard.append({"Gracz": p, "Suma": pts})
-    st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False))
+        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k])[0] for k in ALL_KEYS)
+        
+        # Jeśli punkty to liczba całkowita, zapisz bez .0 (np. 15.0 -> 15)
+        pts_display = int(pts) if pts % 1 == 0 else round(pts, 1)
+        leaderboard.append({"Gracz": p, "Suma": pts_display})
+        
+    st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
 # --- DRABINKA ---
 with tab3:
@@ -345,12 +362,14 @@ with tab3:
         t1, t2, s1, s2 = BRACKET[k]
         u_pick = st.session_state.db.get(st.session_state.logged_user, {}).get(k, "-") if st.session_state.logged_user else "-"
         a_res = actual_res_db.get(k, "W toku")
-        pts, css_box, css_pts = get_points_logic(u_pick, a_res)
+        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k])
+        
+        pts_str = format_score(pts)
         
         st.markdown(f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick} <span class="pts-badge {css_pts}">+{pts}</span></div>
+            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick} <span class="pts-badge {css_pts}">{pts_str}</span></div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
         </div>
         """, unsafe_allow_html=True)
@@ -366,7 +385,7 @@ with tab3:
     for stage_name, keys in STAGE_GROUPS_BRACKET:
         valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
         if valid_keys:
-            st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             for k in valid_keys:
                 draw_bracket_card(k)
 
