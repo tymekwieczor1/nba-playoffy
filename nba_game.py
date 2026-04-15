@@ -158,8 +158,32 @@ st.markdown("""
     .stButton > button { width: 100%; background-color: transparent !important; border: 1px solid #555 !important; color: white !important; }
     .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
 
-    .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; }
-    .save-btn-col .stButton > button { border-color: #0099ff !important; color: #0099ff !important; }
+    /* --- NOWE STYLE DLA PRZYCISKÓW ZAPISZ I USUŃ --- */
+    .save-btn-col .stButton > button { 
+        border-color: #28a745 !important; 
+        color: #28a745 !important; 
+        background-color: rgba(40, 167, 69, 0.1) !important;
+        font-size: 1.1em !important;
+        padding: 10px !important;
+        min-height: 55px !important;
+        margin-top: 5px;
+    }
+    .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
+
+    .clear-btn-col .stButton > button { 
+        border-color: #ff4b4b !important; 
+        color: #ff4b4b !important; 
+        background-color: rgba(255, 75, 75, 0.1) !important;
+        font-size: 1.1em !important;
+        padding: 10px !important;
+        min-height: 55px !important;
+        margin-top: 5px;
+    }
+    .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
+
+    div[data-baseweb="select"] { font-size: 20px !important; }
+    div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
+    div[data-baseweb="popover"] ul li { font-size: 20px !important; padding: 10px !important; }
 
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
@@ -277,8 +301,8 @@ with tab1:
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
-                    if current_val == "-": st.markdown(f'<p style="margin-top:15px; font-size: 1.2em; color:#ff4b4b;"><b>BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
-                    else: st.markdown(f'<p style="margin-top:15px; font-size: 1.2em; color:#0099ff;"><b>{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
+                    if current_val == "-": st.markdown(f'<p style="margin-top:20px; font-size: 1.2em; color:#ff4b4b;"><b>BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
+                    else: st.markdown(f'<p style="margin-top:20px; font-size: 1.2em; color:#0099ff;"><b>{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
@@ -323,7 +347,7 @@ with tab3:
         is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
         a_res = actual_res_db.get(k, "W toku")
         pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot)
-        st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot and u_pick!="-" else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
 
     STAGE_GROUPS_BRACKET = [("ZACHÓD", ["W1", "W2", "W3", "W4"]), ("WSCHÓD", ["E1", "E2", "E3", "E4"]), ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]), ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]), ("FINAŁ NBA", ["FINALS"])]
     for stage_name, keys in STAGE_GROUPS_BRACKET:
