@@ -88,14 +88,15 @@ BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET["W_CF"
 
 ALL_KEYS = list(BRACKET.keys())
 
-# --- 4. CSS (LOGA W RAMKACH) ---
+# --- 4. CSS (LOGA W RAMKACH I STYLIZACJA) ---
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="centered")
 
 st.markdown("""
     <style>
     .match-card { 
-        margin-bottom: 40px; /* Usunięto szare tło i ramkę, zostawiono tylko odstęp */
+        margin-bottom: 80px; /* ZNACZNIE ZWIĘKSZONY ODSTĘP MIĘDZY MECZAMI */
     }
+    
     /* --- ZMODYFIKOWANY KONTENER DRUŻYNY --- */
     .team-box {
         border-radius: 15px;
@@ -104,7 +105,7 @@ st.markdown("""
         border: 2px solid #444;
         background: rgba(255,255,255,0.02);
         transition: 0.3s;
-        height: 160px; /* Zwiększona wysokość pod większą czcionkę */
+        height: 160px; 
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -112,20 +113,19 @@ st.markdown("""
     }
     .team-box img {
         margin-bottom: 15px;
-        max-height: 70px; /* Nieco większe loga */
+        max-height: 70px; 
         object-fit: contain;
     }
     
-    /* --- NOWE: TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
-    /* Wykrywa kontener przycisku znajdujący się bezpośrednio pod naszą ramką i nasuwa go na nią */
+    /* --- TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
     div.element-container:has(.team-box) + div.element-container {
-        margin-top: -160px; /* Dopasowane do nowej wysokości kafelka */
+        margin-top: -160px; 
         position: relative;
         z-index: 10;
     }
     div.element-container:has(.team-box) + div.element-container button {
-        height: 160px; /* Dopasowane do nowej wysokości kafelka */
-        opacity: 0 !important; /* Całkowicie ukrywa wizualną część przycisku, zostawiając samo "klikalne" pole */
+        height: 160px; 
+        opacity: 0 !important; 
         cursor: pointer;
     }
 
@@ -146,6 +146,15 @@ st.markdown("""
     .stButton > button:hover {
         border-color: #0099ff !important;
         color: #0099ff !important;
+    }
+
+    /* --- ZWIĘKSZENIE CZCIONKI W SELECTBOXACH (ROZWIJANE MENU) --- */
+    div[data-baseweb="select"] > div {
+        font-size: 1.2rem !important;
+        min-height: 50px !important;
+    }
+    div[data-baseweb="popover"] ul li {
+        font-size: 1.2rem !important;
     }
 
     .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #f82910; font-weight: bold; }
@@ -197,7 +206,6 @@ with tab1:
             logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
             
             with c1:
-                # Zamknięty, kompletny blok HTML reprezentujący drużynę 1 (większa czcionka)
                 st.markdown(f'''
                 <div class="team-box {"selected-blue" if left_wins else "unselected"}">
                     <img src="{logo_t1}" alt="{t1}">
@@ -205,13 +213,11 @@ with tab1:
                 </div>
                 ''', unsafe_allow_html=True)
                 
-                # Niewidzialny przycisk nałożony na blok wyżej
                 if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked, use_container_width=True):
                     st.session_state.temp_picks[k] = f"4-{num_games-4}"
                     st.rerun()
 
             with c2:
-                # Zamknięty, kompletny blok HTML reprezentujący drużynę 2 (większa czcionka)
                 st.markdown(f'''
                 <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
                     <img src="{logo_t2}" alt="{t2}">
@@ -219,19 +225,30 @@ with tab1:
                 </div>
                 ''', unsafe_allow_html=True)
                 
-                # Niewidzialny przycisk nałożony na blok wyżej
                 if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked, use_container_width=True):
                     st.session_state.temp_picks[k] = f"{num_games-4}-4"
                     st.rerun()
             
             st.markdown("<br>", unsafe_allow_html=True)
-            selected_games = st.selectbox(f"Liczba meczów serii:", [4, 5, 6, 7], 
-                                         index=[4, 5, 6, 7].index(num_games), key=f"sl_{k}", disabled=is_locked)
+            
+            # WŁASNY, DUŻY ETYKIET (Zamiast domyślnego w selectbox)
+            st.markdown(f'<div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">Liczba meczów serii:</div>', unsafe_allow_html=True)
+            
+            # Selectbox z ukrytym domyślnym labelem
+            selected_games = st.selectbox(
+                f"Ukryty Label {k}", 
+                [4, 5, 6, 7], 
+                index=[4, 5, 6, 7].index(num_games), 
+                key=f"sl_{k}", 
+                disabled=is_locked,
+                label_visibility="collapsed"
+            )
             
             if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
             else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
             
-            st.markdown(f'<p style="margin-top:10px; font-size: 0.9em;">Twój typ: <b>{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+            # POWIĘKSZONY TEKST "TWÓJ TYP" Z NIEBIESKIM WYNIKIEM
+            st.markdown(f'<p style="margin-top:15px; font-size: 1.2em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
