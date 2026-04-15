@@ -242,11 +242,11 @@ with tab1:
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                # --- BEZPIECZNE POBIERANIE STANU (Z BRAKIEM WYBORU NA START) ---
+                # --- BEZPIECZNE POBIERANIE STANU ---
                 current_val = st.session_state.temp_picks.get(k, "-")
                 left_selected = False
                 right_selected = False
-                num_games = None
+                num_games = 4
 
                 if current_val != "-" and "-" in str(current_val):
                     try:
@@ -266,7 +266,7 @@ with tab1:
                 is_hot = (is_hot_str == "true")
                 can_use_hot = is_hot or (hot_takes_used < 2)
                 
-                # Opcje powiązane (hot take, selectbox) są wyłączone, dopóki ktoś nie wybierze wygranej drużyny
+                # Blokady gdy nie wybrano jeszcze drużyny
                 options_disabled = match_locked or current_val == "-"
                 hot_disabled = options_disabled or not can_use_hot
 
@@ -287,7 +287,7 @@ with tab1:
                     </div>
                     ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"4-{num_games-4 if num_games else 0}"
+                        st.session_state.temp_picks[k] = f"4-{num_games-4}"
                         st.rerun()
 
                 with c2:
@@ -300,45 +300,45 @@ with tab1:
                     </div>
                     ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"{num_games-4 if num_games else 0}-4"
+                        st.session_state.temp_picks[k] = f"{num_games-4}-4"
                         st.rerun()
                 
-                st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
-                if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
-                    if is_hot:
-                        st.session_state.temp_picks[f"hot_{k}"] = "False"
-                    else:
-                        st.session_state.temp_picks[f"hot_{k}"] = "True"
-                        st.toast("🔥 BOOM! HOT TAKE AKTYWOWANY! 🔥")
-                    st.rerun()
+                # Wyświetlamy resztę opcji TYLKO, gdy gracz wybrał drużynę
+                if current_val != "-":
+                    st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
+                    if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
+                        if is_hot:
+                            st.session_state.temp_picks[f"hot_{k}"] = "False"
+                        else:
+                            st.session_state.temp_picks[f"hot_{k}"] = "True"
+                            st.toast("🔥 BOOM! HOT TAKE AKTYWOWANY! 🔥")
+                        st.rerun()
 
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
-                
-                selected_games = st.selectbox(
-                    f"Ukryty Label {k}", 
-                    [4, 5, 6, 7], 
-                    index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else None, 
-                    placeholder="Najpierw wybierz drużynę...",
-                    key=f"sl_{k}", 
-                    disabled=options_disabled,
-                    label_visibility="collapsed"
-                )
-                
-                # Zmiana wyboru w selekcie zapisuje się do state'u
-                if selected_games is not None and current_val != "-":
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
+                    
+                    selected_games = st.selectbox(
+                        f"Ukryty Label {k}", 
+                        [4, 5, 6, 7], 
+                        index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else 0, 
+                        key=f"sl_{k}", 
+                        disabled=options_disabled,
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Logika podpinająca wynik z selekta
                     if left_selected: 
-                        new_val = f"4-{selected_games-4}"
-                        if current_val != new_val:
-                            st.session_state.temp_picks[k] = new_val
-                            st.rerun()
+                        expected_val = f"4-{selected_games-4}"
                     elif right_selected: 
-                        new_val = f"{selected_games-4}-4"
-                        if current_val != new_val:
-                            st.session_state.temp_picks[k] = new_val
-                            st.rerun()
-                
+                        expected_val = f"{selected_games-4}-4"
+                    else:
+                        expected_val = "-"
+                        
+                    if current_val != expected_val and expected_val != "-":
+                        st.session_state.temp_picks[k] = expected_val
+                        st.rerun()
+
                 colA, colB = st.columns([3, 1])
                 with colA:
                     if current_val == "-":
@@ -352,6 +352,9 @@ with tab1:
                     if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
                         st.session_state.temp_picks[k] = "-"
                         st.session_state.temp_picks[f"hot_{k}"] = "False"
+                        # --- KLUCZOWA POPRAWKA BŁĘDU --- (Kasuje "pamięć" starej listy rozwijanej)
+                        if f"sl_{k}" in st.session_state:
+                            del st.session_state[f"sl_{k}"]
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                 
