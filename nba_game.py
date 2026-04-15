@@ -8,67 +8,56 @@ START_TIME = datetime(2026, 4, 18, 19, 0)
 
 PLAYERS = ["Adam", "Bartek", "Czarek", "Dawid", "Eryk", "Filip", "Grzegorz"]
 SERIES = [
-    "Celtics vs Heat", 
-    "Knicks vs Sixers", 
-    "Bucks vs Pacers", 
-    "Cavs vs Magic",
-    "Thunder vs Pelicans",
-    "Nuggets vs Lakers",
-    "Timberwolves vs Suns",
-    "Clippers vs Mavericks"
+    "Celtics vs Heat", "Knicks vs Sixers", "Bucks vs Pacers", "Cavs vs Magic",
+    "Thunder vs Pelicans", "Nuggets vs Lakers", "Timberwolves vs Suns", "Clippers vs Mavericks"
 ]
 
-st.set_page_config(page_title="NBA Playoff Predictor", page_icon="🏀")
+st.set_page_config(page_title="NBA Playoff Predictor", page_icon="🏀", layout="wide")
 
 def load_data():
     if os.path.exists("wyniki.csv"):
-        try:
-            return pd.read_csv("wyniki.csv", index_col=0).to_dict('index')
-        except:
-            return {}
+        try: return pd.read_csv("wyniki.csv", index_col=0).to_dict('index')
+        except: return {}
     return {}
 
 def save_data(data):
-    df_to_save = pd.DataFrame.from_dict(data, orient='index')
-    df_to_save.to_csv("wyniki.csv")
+    pd.DataFrame.from_dict(data, orient='index').to_csv("wyniki.csv")
 
 if 'db' not in st.session_state:
     st.session_state.db = load_data()
 
-st.title("🏀 NBA Playoff Challenge")
+st.title("🏀 NBA Playoff Challenge 2026")
 now = datetime.now()
 is_locked = now > START_TIME
 
-if not is_locked:
-    st.info(f"⏳ Czas na typowanie do: {START_TIME.strftime('%d.%m.%Y %H:%M')}")
-else:
-    st.warning("🔒 Mecze się rozpoczęły. Typy są zablokowane!")
-
-tab1, tab2 = st.tabs(["🖋️ Wpisz Swoje Typy", "🏆 Ranking i Podgląd"])
+# --- ZAKŁADKI ---
+tab1, tab2, tab3 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff"])
 
 with tab1:
-    user = st.selectbox("Kim jesteś?", [""] + PLAYERS)
+    user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
     if user:
-        st.write(f"Cześć **{user}**! Wybierz wyniki serii:")
+        st.subheader(f"Typy: {user}")
         current_user_data = st.session_state.db.get(user, {})
         new_picks = {}
         options = ["4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
-
-        for match in SERIES:
+        
+        cols = st.columns(2)
+        for i, match in enumerate(SERIES):
+            col = cols[i % 2]
             default_val = current_user_data.get(match, "4-0")
             idx = options.index(default_val) if default_val in options else 0
-            pick = st.selectbox(f"{match}", options, key=f"in_{user}_{match}", index=idx, disabled=is_locked)
+            pick = col.selectbox(f"{match}", options, key=f"in_{user}_{match}", index=idx, disabled=is_locked)
             new_picks[match] = pick
         
-        if st.button("Zapisz moje typy", disabled=is_locked):
+        if st.button("Zapisz moje typy", disabled=is_locked, use_container_width=True):
             st.session_state.db[user] = new_picks
             save_data(st.session_state.db)
-            st.success("✅ Zapisano!")
+            st.success("✅ Zapisano pomyślnie!")
 
 with tab2:
-    st.subheader("Aktualna Tabela")
+    st.subheader("Tabela Wyników")
     if not st.session_state.db:
-        st.write("Brak wpisanych typów.")
+        st.write("Czekamy na pierwsze typy...")
     else:
         display_rows = []
         for p in PLAYERS:
@@ -79,3 +68,25 @@ with tab2:
                 row[match] = "🔒" if (not is_locked and p != user) else val
             display_rows.append(row)
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
+
+with tab3:
+    st.subheader("Aktualna Drabinka Playoffów")
+    
+    col_west, col_empty, col_east = st.columns([1, 0.2, 1])
+    
+    with col_east:
+        st.markdown("### KONFERENCJA WSCHODNIA")
+        st.info("**Celtics (1)** vs **Heat (8)**")
+        st.info("**Cavs (4)** vs **Magic (5)**")
+        st.info("**Bucks (3)** vs **Pacers (6)**")
+        st.info("**Knicks (2)** vs **Sixers (7)**")
+
+    with col_west:
+        st.markdown("### KONFERENCJA ZACHODNIA")
+        st.success("**Thunder (1)** vs **Pelicans (8)**")
+        st.success("**Clippers (4)** vs **Mavericks (5)**")
+        st.success("**Timberwolves (3)** vs **Suns (6)**")
+        st.success("**Nuggets (2)** vs **Lakers (7)**")
+
+    st.markdown("---")
+    st.caption("Drabinka będzie aktualizowana po każdej rundzie przez administratora.")
