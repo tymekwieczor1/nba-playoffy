@@ -10,6 +10,17 @@ now = datetime.now()
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
+# Stałe 6-cyfrowe PIN-y dla każdego gracza
+PLAYER_PINS = {
+    "Tymek": "839201",
+    "Soból": "471029",
+    "Maciek": "593812",
+    "Kowal": "104857",
+    "Paweł": "629403",
+    "Mateusz": "385192",
+    "Tomasz": "740285"
+}
+
 LOGOS = {
     "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
     "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
@@ -213,13 +224,16 @@ with tab1:
     if st.session_state.logged_user is None:
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
         if user:
-            user_data = st.session_state.db.get(user, {})
-            pwd = st.text_input("Hasło:", type="password", key=f"login_{user}")
+            pwd = st.text_input("Hasło (6 cyfr):", type="password", key=f"login_{user}")
             if st.button("Wejdź"):
-                if pwd == user_data.get("PIN", "123"):
+                # Sprawdzanie hasła ze stałą listą zdefiniowaną na górze pliku
+                if pwd == PLAYER_PINS.get(user):
                     st.session_state.logged_user = user
+                    user_data = st.session_state.db.get(user, {})
                     st.session_state.temp_picks = user_data.copy()
                     st.rerun()
+                else:
+                    st.error("Błędne hasło!")
     else:
         st.subheader(f"Zalogowano: {st.session_state.logged_user}")
         if st.button("Wyloguj"):
