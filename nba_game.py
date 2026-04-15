@@ -94,11 +94,7 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 st.markdown("""
     <style>
     .match-card { 
-        background: rgba(255,255,255,0.03); 
-        padding: 20px; 
-        border-radius: 20px; 
-        border: 1px solid #333; 
-        margin-bottom: 30px; 
+        margin-bottom: 40px; /* Usunięto szare tło i ramkę, zostawiono tylko odstęp */
     }
     /* --- ZMODYFIKOWANY KONTENER DRUŻYNY --- */
     .team-box {
@@ -108,27 +104,27 @@ st.markdown("""
         border: 2px solid #444;
         background: rgba(255,255,255,0.02);
         transition: 0.3s;
-        height: 140px; /* Stała wysokość pozwala idealnie nałożyć przycisk */
+        height: 160px; /* Zwiększona wysokość pod większą czcionkę */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
     }
     .team-box img {
-        margin-bottom: 10px;
-        max-height: 60px;
+        margin-bottom: 15px;
+        max-height: 70px; /* Nieco większe loga */
         object-fit: contain;
     }
     
     /* --- NOWE: TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
     /* Wykrywa kontener przycisku znajdujący się bezpośrednio pod naszą ramką i nasuwa go na nią */
     div.element-container:has(.team-box) + div.element-container {
-        margin-top: -140px; 
+        margin-top: -160px; /* Dopasowane do nowej wysokości kafelka */
         position: relative;
         z-index: 10;
     }
     div.element-container:has(.team-box) + div.element-container button {
-        height: 140px;
+        height: 160px; /* Dopasowane do nowej wysokości kafelka */
         opacity: 0 !important; /* Całkowicie ukrywa wizualną część przycisku, zostawiając samo "klikalne" pole */
         cursor: pointer;
     }
@@ -192,7 +188,8 @@ with tab1:
             num_games = sum(map(int, current_val.split("-")))
 
             st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
-            st.markdown(f"<b>{t1} vs {t2}</b>", unsafe_allow_html=True)
+            # Duży nagłówek wyśrodkowany
+            st.markdown(f"<h3 style='text-align: center; margin-bottom: 20px;'>{t1} vs {t2}</h3>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
             
@@ -200,11 +197,11 @@ with tab1:
             logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
             
             with c1:
-                # Zamknięty, kompletny blok HTML reprezentujący drużynę 1
+                # Zamknięty, kompletny blok HTML reprezentujący drużynę 1 (większa czcionka)
                 st.markdown(f'''
                 <div class="team-box {"selected-blue" if left_wins else "unselected"}">
                     <img src="{logo_t1}" alt="{t1}">
-                    <span style="font-weight: bold; font-size: 0.9em;">{t1}</span>
+                    <span style="font-weight: bold; font-size: 1.3em;">{t1}</span>
                 </div>
                 ''', unsafe_allow_html=True)
                 
@@ -214,11 +211,11 @@ with tab1:
                     st.rerun()
 
             with c2:
-                # Zamknięty, kompletny blok HTML reprezentujący drużynę 2
+                # Zamknięty, kompletny blok HTML reprezentujący drużynę 2 (większa czcionka)
                 st.markdown(f'''
                 <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
                     <img src="{logo_t2}" alt="{t2}">
-                    <span style="font-weight: bold; font-size: 0.9em;">{t2}</span>
+                    <span style="font-weight: bold; font-size: 1.3em;">{t2}</span>
                 </div>
                 ''', unsafe_allow_html=True)
                 
