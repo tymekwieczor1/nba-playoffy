@@ -48,22 +48,10 @@ LOGOS = {
 }
 
 ODDS = {
-    "Thunder": 1.25,
-    "8 Seed": 3.50,
-    "Lakers": 1.85,
-    "Rockets": 1.95,
-    "Nuggets": 1.40,
-    "Timberwolves": 2.70,
-    "Spurs": 1.60,
-    "Trail Blazers": 2.20,
-    "Pistons": 1.30,
-    "Cavaliers": 1.75,
-    "Raptors": 2.05,
-    "Knicks": 1.50,
-    "Hawks": 2.40,
-    "Celtics": 1.15,
-    "7 Seed": 4.80,
-    "TBD": "-"
+    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
+    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
+    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
+    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
 }
 
 # --- 2. FUNKCJE ---
@@ -79,17 +67,14 @@ def save_data(data, filename):
 def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False):
     if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
         return 0, "", "pts-normal"
-    
     pts = 0
     try:
         u_left_wins = int(str(user_pick).split("-")[0]) == 4
         a_left_wins = int(str(actual_result).split("-")[0]) == 4
-        
         if str(user_pick) == str(actual_result): 
             pts = 5 * multiplier
             if is_hot_take: pts += 5  
             return pts, "res-exact", "pts-exact"
-            
         elif u_left_wins == a_left_wins: 
             pts = 3 * multiplier
             if is_hot_take: pts += 2  
@@ -136,7 +121,7 @@ BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET["W_CF"
 
 ALL_KEYS = list(BRACKET.keys())
 
-# --- 4. CSS (LOGA W RAMKACH I STYLIZACJA) ---
+# --- 4. CSS ---
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="centered")
 
 st.markdown("""
@@ -155,7 +140,6 @@ st.markdown("""
         display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .team-box img { margin-bottom: 10px; max-height: 60px; object-fit: contain; }
-    
     div.element-container:has(.team-box) + div.element-container { margin-top: -160px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 160px; opacity: 0 !important; cursor: pointer; }
 
@@ -165,7 +149,6 @@ st.markdown("""
         display: flex; align-items: center; justify-content: center; margin-top: 15px; margin-bottom: 15px;
     }
     .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
-    
     div.element-container:has(.hot-box) + div.element-container { margin-top: -90px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
 
@@ -175,12 +158,8 @@ st.markdown("""
     .stButton > button { width: 100%; background-color: transparent !important; border: 1px solid #555 !important; color: white !important; }
     .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
 
-    .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; margin-top: 10px; }
-    .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.1) !important; }
-
-    div[data-baseweb="select"] { font-size: 20px !important; }
-    div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
-    div[data-baseweb="popover"] ul li { font-size: 20px !important; padding: 10px !important; }
+    .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; }
+    .save-btn-col .stButton > button { border-color: #0099ff !important; color: #0099ff !important; }
 
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
@@ -207,8 +186,7 @@ with tab1:
                     user_data = st.session_state.db.get(user, {})
                     st.session_state.temp_picks = user_data.copy()
                     st.rerun()
-                else:
-                    st.error("Błędne hasło!")
+                else: st.error("Błędne hasło!")
     else:
         st.subheader(f"Zalogowano: {st.session_state.logged_user}")
         if st.button("Wyloguj"):
@@ -217,11 +195,17 @@ with tab1:
         
         is_global_locked = now > START_TIME
 
+        # Statystyki zapisanych typów
+        user_saved_data = st.session_state.db.get(st.session_state.logged_user, {})
+        placed_picks = sum(1 for k in ALL_KEYS if user_saved_data.get(k, "-") != "-")
         hot_takes_used = sum(1 for k in ALL_KEYS if str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true")
         
         st.markdown(f"""
-        <div style="background-color: rgba(255, 75, 75, 0.1); padding: 15px; border-radius: 10px; border: 1px solid #ff4b4b; text-align: center; margin-top: 20px; margin-bottom: 20px;">
-            <span style="font-size: 1.2em; font-weight: bold; color: #ff4b4b;">🔥 Wykorzystane Hot Take'i: {hot_takes_used} / 2 🔥</span>
+        <div style="background-color: rgba(0, 153, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px solid #0099ff; text-align: center; margin-top: 20px; margin-bottom: 10px;">
+            <span style="font-size: 1.1em; font-weight: bold; color: #0099ff;">✅ Zapisane typy: {placed_picks} / {len(ALL_KEYS)}</span>
+        </div>
+        <div style="background-color: rgba(255, 75, 75, 0.05); padding: 15px; border-radius: 10px; border: 1px solid #ff4b4b; text-align: center; margin-bottom: 20px;">
+            <span style="font-size: 1.1em; font-weight: bold; color: #ff4b4b;">🔥 Wykorzystane Hot Take'i: {hot_takes_used} / 2</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -241,8 +225,6 @@ with tab1:
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
-                
-                # --- BEZPIECZNE POBIERANIE STANU ---
                 current_val = st.session_state.temp_picks.get(k, "-")
                 left_selected = False
                 right_selected = False
@@ -254,121 +236,73 @@ with tab1:
                         left_selected = int(parts[0]) == 4
                         right_selected = int(parts[1]) == 4
                         num_games = sum(map(int, parts))
-                    except:
-                        current_val = "-"
-                else:
-                    current_val = "-"
+                    except: current_val = "-"
                 
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
                 match_locked = is_global_locked or is_match_result_known
-
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
-                can_use_hot = is_hot or (hot_takes_used < 2)
-                
-                # Blokady gdy nie wybrano jeszcze drużyny
-                options_disabled = match_locked or current_val == "-"
-                hot_disabled = options_disabled or not can_use_hot
+                hot_disabled = match_locked or current_val == "-" or (not is_hot and hot_takes_used >= 2)
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
                 c1, c2 = st.columns(2)
-                logo_t1 = LOGOS.get(t1, LOGOS["TBD"])
-                logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
+                logo_t1, logo_t2 = LOGOS.get(t1, LOGOS["TBD"]), LOGOS.get(t2, LOGOS["TBD"])
                 
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
-                    st.markdown(f'''
-                    <div class="team-box {css_class}">
-                        <img src="{logo_t1}" alt="{t1}">
-                        <span style="font-weight: bold; font-size: 1.1em;">{t1}</span>
-                        <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t1, "-")}</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"4-{num_games-4}"
-                        st.rerun()
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t1,"-")}</span></div>', unsafe_allow_html=True)
+                    if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked):
+                        st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
-                    st.markdown(f'''
-                    <div class="team-box {css_class}">
-                        <img src="{logo_t2}" alt="{t2}">
-                        <span style="font-weight: bold; font-size: 1.1em;">{t2}</span>
-                        <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t2, "-")}</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"{num_games-4}-4"
-                        st.rerun()
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t2,"-")}</span></div>', unsafe_allow_html=True)
+                    if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked):
+                        st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
-                # Wyświetlamy resztę opcji TYLKO, gdy gracz wybrał drużynę
                 if current_val != "-":
                     st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
-                    if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
-                        if is_hot:
-                            st.session_state.temp_picks[f"hot_{k}"] = "False"
-                        else:
-                            st.session_state.temp_picks[f"hot_{k}"] = "True"
-                            st.toast("🔥 BOOM! HOT TAKE AKTYWOWANY! 🔥")
+                    if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled):
+                        st.session_state.temp_picks[f"hot_{k}"] = "True" if not is_hot else "False"
+                        if not is_hot: st.toast("🔥 HOT TAKE AKTYWOWANY! 🔥")
                         st.rerun()
 
-                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(f'<div style="font-weight:bold;margin-bottom:5px;color:#ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
+                    selected_games = st.selectbox(f"L_{k}", [4, 5, 6, 7], index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else 0, key=f"sl_{k}", disabled=match_locked, label_visibility="collapsed")
                     
-                    st.markdown(f'<div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px; color: #ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
-                    
-                    selected_games = st.selectbox(
-                        f"Ukryty Label {k}", 
-                        [4, 5, 6, 7], 
-                        index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else 0, 
-                        key=f"sl_{k}", 
-                        disabled=options_disabled,
-                        label_visibility="collapsed"
-                    )
-                    
-                    # Logika podpinająca wynik z selekta
-                    if left_selected: 
-                        expected_val = f"4-{selected_games-4}"
-                    elif right_selected: 
-                        expected_val = f"{selected_games-4}-4"
-                    else:
-                        expected_val = "-"
-                        
-                    if current_val != expected_val and expected_val != "-":
-                        st.session_state.temp_picks[k] = expected_val
-                        st.rerun()
+                    new_val = f"4-{selected_games-4}" if left_selected else f"{selected_games-4}-4"
+                    if current_val != new_val: st.session_state.temp_picks[k] = new_val; st.rerun()
 
-                colA, colB = st.columns([3, 1])
+                colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
-                    if current_val == "-":
-                        st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #ff4b4b;">BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
-                    else:
-                        hot_icon_display = " 🔥" if is_hot else ""
-                        st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{current_val}{hot_icon_display}</b></p>', unsafe_allow_html=True)
+                    if current_val == "-": st.markdown(f'<p style="margin-top:15px; font-size: 1.2em; color:#ff4b4b;"><b>BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
+                    else: st.markdown(f'<p style="margin-top:15px; font-size: 1.2em; color:#0099ff;"><b>{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
                 
                 with colB:
-                    st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
-                    if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
-                        st.session_state.temp_picks[k] = "-"
-                        st.session_state.temp_picks[f"hot_{k}"] = "False"
-                        # --- KLUCZOWA POPRAWKA BŁĘDU --- (Kasuje "pamięć" starej listy rozwijanej)
-                        if f"sl_{k}" in st.session_state:
-                            del st.session_state[f"sl_{k}"]
+                    st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
+                    if st.button("💾 Zapisz", key=f"save_ind_{k}", disabled=match_locked or current_val == "-"):
+                        st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
+                        save_data(st.session_state.db, "wyniki.csv")
+                        st.toast(f"Zapisano mecz {t1} vs {t2}!")
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
-                
+
+                with colC:
+                    st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
+                    if st.button("🗑️ Usuń", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
+                        st.session_state.temp_picks[k] = "-"; st.session_state.temp_picks[f"hot_{k}"] = "False"
+                        if f"sl_{k}" in st.session_state: del st.session_state[f"sl_{k}"]
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-                
-                if i < len(valid_keys) - 1:
-                    st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+                if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_global_locked):
+        if st.button("ZAPISZ WSZYSTKO", use_container_width=True, disabled=is_global_locked):
             st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
-            save_data(st.session_state.db, "wyniki.csv")
-            st.balloons()
-            st.success("Zapisano!")
+            save_data(st.session_state.db, "wyniki.csv"); st.balloons(); st.success("Wszystko zapisane!"); st.rerun()
 
 # --- RANKING ---
 with tab2:
@@ -376,16 +310,8 @@ with tab2:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = 0
-        for k in ALL_KEYS:
-            is_hot_str = str(p_data.get(f"hot_{k}", "False")).lower()
-            is_hot = (is_hot_str == "true")
-            match_pts = get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot)[0]
-            pts += match_pts
-        
-        pts_display = int(pts) if pts % 1 == 0 else round(pts, 1)
-        leaderboard.append({"Gracz": p, "Suma": pts_display})
-        
+        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k], str(p_data.get(f"hot_{k}","False")).lower()=="true")[0] for k in ALL_KEYS)
+        leaderboard.append({"Gracz": p, "Suma": int(pts) if pts % 1 == 0 else round(pts, 1)})
     st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
 # --- DRABINKA ---
@@ -393,40 +319,18 @@ with tab3:
     def draw_bracket_card(k):
         t1, t2, s1, s2 = BRACKET[k]
         u_data = st.session_state.db.get(st.session_state.logged_user, {})
-        u_pick = u_data.get(k, "-") if st.session_state.logged_user else "-"
-        
-        is_hot_str = str(u_data.get(f"hot_{k}", "False")).lower()
-        is_hot = (is_hot_str == "true")
-        hot_icon = " 🔥" if is_hot and u_pick != "-" else ""
-
+        u_pick = u_data.get(k, "-")
+        is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
         a_res = actual_res_db.get(k, "W toku")
         pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot)
-        
-        pts_str = format_score(pts)
-        u_pick_display = "BRAK" if u_pick == "-" else f"{u_pick}{hot_icon}"
-        
-        st.markdown(f"""
-        <div class="match-box {css_box}">
-            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick_display} <span class="pts-badge {css_pts}">{pts_str}</span></div>
-            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
 
-    STAGE_GROUPS_BRACKET = [
-        ("ZACHÓD", ["W1", "W2", "W3", "W4"]),
-        ("WSCHÓD", ["E1", "E2", "E3", "E4"]),
-        ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
-        ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
-        ("FINAŁ NBA", ["FINALS"])
-    ]
-
+    STAGE_GROUPS_BRACKET = [("ZACHÓD", ["W1", "W2", "W3", "W4"]), ("WSCHÓD", ["E1", "E2", "E3", "E4"]), ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]), ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]), ("FINAŁ NBA", ["FINALS"])]
     for stage_name, keys in STAGE_GROUPS_BRACKET:
         valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
         if valid_keys:
             st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
-            for k in valid_keys:
-                draw_bracket_card(k)
+            for k in valid_keys: draw_bracket_card(k)
 
 # --- ADMIN ---
 with tab4:
@@ -436,16 +340,9 @@ with tab4:
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             curr = actual_res_db.get(k, "W toku")
-            
-            if t1 == "TBD" or t2 == "TBD":
-                new_results[k] = curr
-                continue
-                
+            if t1 == "TBD" or t2 == "TBD": new_results[k] = curr; continue
             opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
-            idx = opts.index(curr) if curr in opts else 0
-            new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=idx, key=f"adm_{k}")
-            
+            new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=opts.index(curr) if curr in opts else 0, key=f"adm_{k}")
         if st.button("Zatwierdź Wyniki"):
             st.session_state.results["OFFICIAL"] = new_results
-            save_data(st.session_state.results, "oficjalne_wyniki.csv")
-            st.rerun()
+            save_data(st.session_state.results, "oficjalne_wyniki.csv"); st.rerun()
