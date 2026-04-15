@@ -248,7 +248,7 @@ with tab1:
             else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
             
             # POWIĘKSZONY TEKST "TWÓJ TYP" Z NIEBIESKIM WYNIKIEM
-            st.markdown(f'<p style="margin-top:15px; font-size: 1.2em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="margin-top:25px; font-size: 1.2em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
