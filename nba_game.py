@@ -77,4 +77,176 @@ R1_MAP = {
     "E3": ["Knicks", "Hawks", "3", "6"], "E4": ["Celtics", "7 Seed", "2", "7"]
 }
 
-BRACKET = {**R1_MAP
+BRACKET = {**R1_MAP}
+BRACKET["W_SF1"] = [get_winner("W1", st.session_state.results, BRACKET["W1"]), get_winner("W2", st.session_state.results, BRACKET["W2"]), "SF", "SF"]
+BRACKET["W_SF2"] = [get_winner("W3", st.session_state.results, BRACKET["W3"]), get_winner("W4", st.session_state.results, BRACKET["W4"]), "SF", "SF"]
+BRACKET["E_SF1"] = [get_winner("E1", st.session_state.results, BRACKET["E1"]), get_winner("E2", st.session_state.results, BRACKET["E2"]), "SF", "SF"]
+BRACKET["E_SF2"] = [get_winner("E3", st.session_state.results, BRACKET["E3"]), get_winner("E4", st.session_state.results, BRACKET["E4"]), "SF", "SF"]
+BRACKET["W_CF"] = [get_winner("W_SF1", st.session_state.results, BRACKET["W_SF1"]), get_winner("W_SF2", st.session_state.results, BRACKET["W_SF2"]), "CF", "CF"]
+BRACKET["E_CF"] = [get_winner("E_SF1", st.session_state.results, BRACKET["E_SF1"]), get_winner("E_SF2", st.session_state.results, BRACKET["E_SF2"]), "CF", "CF"]
+BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET["W_CF"]), get_winner("E_CF", st.session_state.results, BRACKET["E_CF"]), "Final", "Final"]
+
+ALL_KEYS = list(BRACKET.keys())
+
+# --- 4. CSS (LOGA W RAMKACH) ---
+st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="centered")
+
+st.markdown("""
+    <style>
+    .match-card { 
+        background: rgba(255,255,255,0.03); 
+        padding: 20px; 
+        border-radius: 20px; 
+        border: 1px solid #333; 
+        margin-bottom: 30px; 
+    }
+    /* --- ZMODYFIKOWANY KONTENER DRUŻYNY --- */
+    .team-box {
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
+        border: 2px solid #444;
+        background: rgba(255,255,255,0.02);
+        transition: 0.3s;
+        height: 140px; /* Stała wysokość pozwala idealnie nałożyć przycisk */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .team-box img {
+        margin-bottom: 10px;
+        max-height: 60px;
+        object-fit: contain;
+    }
+    
+    /* --- NOWE: TRIK Z NIEWIDZIALNYM PRZYCISKIEM --- */
+    /* Wykrywa kontener przycisku znajdujący się bezpośrednio pod naszą ramką i nasuwa go na nią */
+    div.element-container:has(.team-box) + div.element-container {
+        margin-top: -140px; 
+        position: relative;
+        z-index: 10;
+    }
+    div.element-container:has(.team-box) + div.element-container button {
+        height: 140px;
+        opacity: 0 !important; /* Całkowicie ukrywa wizualną część przycisku, zostawiając samo "klikalne" pole */
+        cursor: pointer;
+    }
+
+    /* Podświetlenie na niebiesko */
+    .selected-blue { 
+        border: 3px solid #0099ff !important; 
+        background: rgba(0, 153, 255, 0.1) !important;
+        box-shadow: 0 0 10px rgba(0, 153, 255, 0.3);
+    }
+    .unselected { opacity: 0.5; }
+    
+    .stButton > button {
+        width: 100%;
+        background-color: transparent !important;
+        border: 1px solid #555 !important;
+        color: white !important;
+    }
+    .stButton > button:hover {
+        border-color: #0099ff !important;
+        color: #0099ff !important;
+    }
+
+    .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #f82910; font-weight: bold; }
+    .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
+    .pts-exact { background-color: #008000; color: white; }
+    .pts-winner { background-color: #000080; color: white; }
+    .pts-wrong { background-color: #800000; color: white; }
+    .pts-normal { background-color: #444; color: #bbb; }
+    .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
+    .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    </style>
+    """, unsafe_allow_html=True)
+
+tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
+
+# --- TYPY ---
+with tab1:
+    if st.session_state.logged_user is None:
+        user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
+        if user:
+            user_data = st.session_state.db.get(user, {})
+            pwd = st.text_input("Hasło:", type="password", key=f"login_{user}")
+            if st.button("Wejdź"):
+                if pwd == user_data.get("PIN", "123"):
+                    st.session_state.logged_user = user
+                    st.session_state.temp_picks = user_data.copy()
+                    st.rerun()
+    else:
+        st.subheader(f"Zalogowano: {st.session_state.logged_user}")
+        if st.button("Wyloguj"):
+            st.session_state.logged_user = None
+            st.rerun()
+        
+        is_locked = now > START_TIME
+
+        for k in ALL_KEYS:
+            t1, t2 = BRACKET[k][0], BRACKET[k][1]
+            current_val = st.session_state.temp_picks.get(k, "4-0")
+            left_wins = int(current_val.split("-")[0]) == 4
+            num_games = sum(map(int, current_val.split("-")))
+
+            st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
+            st.markdown(f"<b>{t1} vs {t2}</b>", unsafe_allow_html=True)
+            
+            c1, c2 = st.columns(2)
+            
+            logo_t1 = LOGOS.get(t1, LOGOS["TBD"])
+            logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
+            
+            with c1:
+                # Zamknięty, kompletny blok HTML reprezentujący drużynę 1
+                st.markdown(f'''
+                <div class="team-box {"selected-blue" if left_wins else "unselected"}">
+                    <img src="{logo_t1}" alt="{t1}">
+                    <span style="font-weight: bold; font-size: 0.9em;">{t1}</span>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Niewidzialny przycisk nałożony na blok wyżej
+                if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=is_locked, use_container_width=True):
+                    st.session_state.temp_picks[k] = f"4-{num_games-4}"
+                    st.rerun()
+
+            with c2:
+                # Zamknięty, kompletny blok HTML reprezentujący drużynę 2
+                st.markdown(f'''
+                <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
+                    <img src="{logo_t2}" alt="{t2}">
+                    <span style="font-weight: bold; font-size: 0.9em;">{t2}</span>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                # Niewidzialny przycisk nałożony na blok wyżej
+                if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=is_locked, use_container_width=True):
+                    st.session_state.temp_picks[k] = f"{num_games-4}-4"
+                    st.rerun()
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            selected_games = st.selectbox(f"Liczba meczów serii:", [4, 5, 6, 7], 
+                                         index=[4, 5, 6, 7].index(num_games), key=f"sl_{k}", disabled=is_locked)
+            
+            if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
+            else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
+            
+            st.markdown(f'<p style="margin-top:10px; font-size: 0.9em;">Twój typ: <b>{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
+            st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
+            save_data(st.session_state.db, "wyniki.csv")
+            st.balloons()
+            st.success("Zapisano!")
+
+# --- RANKING ---
+with tab2:
+    st.subheader("Ranking")
+    leaderboard = []
+    for p in PLAYERS:
+        p_data = st.session_state.db.get(p, {})
+        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"))[0]
