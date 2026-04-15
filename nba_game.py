@@ -6,15 +6,29 @@ import os
 # --- KONFIGURACJA ---
 START_TIME = datetime(2026, 4, 18, 19, 0)
 
-# NOWE LOSOWE PINY (6-cyfrowe)
 USER_PINS = {
-    "Tymek": "832941",
-    "Soból": "157482",
-    "Maciek": "920375",
-    "Kowal": "461829",
-    "Paweł": "735106",
-    "Mateusz": "284963",
-    "Tomasz": "619247"
+    "Tymek": "832941", "Soból": "157482", "Maciek": "920375", 
+    "Kowal": "461829", "Paweł": "735106", "Mateusz": "284963", "Tomasz": "619247"
+}
+
+# Linki do logo drużyn
+LOGOS = {
+    "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
+    "Heat": "https://loodibee.com/wp-content/uploads/nba-miami-heat-logo.png",
+    "Knicks": "https://loodibee.com/wp-content/uploads/nba-new-york-knicks-logo.png",
+    "Sixers": "https://loodibee.com/wp-content/uploads/nba-philadelphia-76ers-logo.png",
+    "Bucks": "https://loodibee.com/wp-content/uploads/nba-milwaukee-bucks-logo.png",
+    "Pacers": "https://loodibee.com/wp-content/uploads/nba-indiana-pacers-logo.png",
+    "Cavs": "https://loodibee.com/wp-content/uploads/nba-cleveland-cavaliers-logo.png",
+    "Magic": "https://loodibee.com/wp-content/uploads/nba-orlando-magic-logo.png",
+    "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
+    "Pelicans": "https://loodibee.com/wp-content/uploads/nba-new-orleans-pelicans-logo.png",
+    "Nuggets": "https://loodibee.com/wp-content/uploads/nba-denver-nuggets-logo.png",
+    "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
+    "Timberwolves": "https://loodibee.com/wp-content/uploads/nba-minnesota-timberwolves-logo.png",
+    "Suns": "https://loodibee.com/wp-content/uploads/nba-phoenix-suns-logo.png",
+    "Clippers": "https://loodibee.com/wp-content/uploads/nba-la-clippers-logo.png",
+    "Mavericks": "https://loodibee.com/wp-content/uploads/nba-dallas-mavericks-logo.png"
 }
 
 PLAYERS = list(USER_PINS.keys())
@@ -45,13 +59,10 @@ tab1, tab2, tab3 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka
 
 with tab1:
     user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
-    
     if user:
         pin_input = st.text_input(f"Podaj swój 6-cyfrowy PIN, {user}:", type="password")
-        
         if pin_input == USER_PINS[user]:
             st.success(f"Zalogowano jako {user}")
-            st.subheader(f"Typy: {user}")
             current_user_data = st.session_state.db.get(user, {})
             new_picks = {}
             options = ["4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
@@ -67,14 +78,14 @@ with tab1:
             if st.button("Zapisz moje typy", disabled=is_locked, use_container_width=True):
                 st.session_state.db[user] = new_picks
                 save_data(st.session_state.db)
-                st.success("✅ Twoje typy zostały zapisane!")
+                st.success("✅ Zapisano!")
         elif pin_input != "":
-            st.error("Błędny PIN! Spróbuj ponownie.")
+            st.error("Błędny PIN!")
 
 with tab2:
     st.subheader("Tabela Wyników")
     if not st.session_state.db:
-        st.write("Czekamy na pierwsze typy...")
+        st.write("Czekamy na typy...")
     else:
         display_rows = []
         for p in PLAYERS:
@@ -82,23 +93,32 @@ with tab2:
             p_data = st.session_state.db.get(p, {})
             for match in SERIES:
                 val = p_data.get(match, "-")
-                # Prywatność: blokada widoku innych graczy przed startem
                 row[match] = "🔒" if not is_locked else val
             display_rows.append(row)
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
 
 with tab3:
     st.subheader("Aktualna Drabinka Playoffów")
-    col_west, col_empty, col_east = st.columns([1, 0.2, 1])
+    
+    def match_row(t1, t2):
+        c1, c2, c3, c4 = st.columns([0.2, 1, 0.2, 1])
+        c1.image(LOGOS[t1], width=40)
+        c2.write(f"**{t1}**")
+        c3.image(LOGOS[t2], width=40)
+        c4.write(f"**{t2}**")
+
+    col_west, col_empty, col_east = st.columns([1, 0.1, 1])
+    
     with col_east:
-        st.markdown("### WSCHÓD")
-        st.info("Celtics (1) vs Heat (8)")
-        st.info("Cavs (4) vs Magic (5)")
-        st.info("Bucks (3) vs Pacers (6)")
-        st.info("Knicks (2) vs Sixers (7)")
+        st.markdown("### 🔵 KONFERENCJA WSCHODNIA")
+        match_row("Celtics", "Heat")
+        match_row("Cavs", "Magic")
+        match_row("Bucks", "Pacers")
+        match_row("Knicks", "Sixers")
+
     with col_west:
-        st.markdown("### ZACHÓD")
-        st.success("Thunder (1) vs Pelicans (8)")
-        st.success("Clippers (4) vs Mavericks (5)")
-        st.success("Timberwolves (3) vs Suns (6)")
-        st.success("Nuggets (2) vs Lakers (7)")
+        st.markdown("### 🔴 KONFERENCJA ZACHODNIA")
+        match_row("Thunder", "Pelicans")
+        match_row("Clippers", "Mavericks")
+        match_row("Timberwolves", "Suns")
+        match_row("Nuggets", "Lakers")
