@@ -6,7 +6,6 @@ import os
 # --- KONFIGURACJA ---
 START_TIME = datetime(2026, 4, 18, 19, 0)
 
-# Lista graczy
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
 LOGOS = {
@@ -35,13 +34,12 @@ SERIES = [
 
 st.set_page_config(page_title="NBA Predictor", page_icon="🏀", layout="wide")
 
-# Stylizacja
 st.markdown("""
     <style>
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; }
     </style>
-    "", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def load_data():
     if os.path.exists("wyniki.csv"):
@@ -52,8 +50,11 @@ def load_data():
 def save_data(data):
     pd.DataFrame.from_dict(data, orient='index').to_csv("wyniki.csv")
 
+# --- TUTAJ NA CHWILĘ WYCZYŚCILIŚMY BAZĘ ---
 if 'db' not in st.session_state:
-    st.session_state.db = {}
+    st.session_state.db = {} 
+# -----------------------------------------
+
 if 'logged_user' not in st.session_state:
     st.session_state.logged_user = None
 
@@ -69,23 +70,21 @@ with tab1:
         user_data = st.session_state.db.get(user, {})
         saved_pin = str(user_data.get("PIN", ""))
 
-        if saved_pin == "":
-            st.warning(f"Cześć {user}! Nie masz jeszcze ustawionego PINu.")
-            new_pin = st.text_input("Ustal swój 6-cyfrowy PIN (zapamiętaj go!):", type="password", key="setup_pin")
+        if saved_pin == "" or saved_pin == "nan":
+            st.warning(f"Cześć {user}! Ustal swój nowy PIN.")
+            new_pin = st.text_input("Podaj 6 cyfr:", type="password", key="setup_pin")
             if st.button("Zapisz mój PIN"):
                 if len(new_pin) >= 4:
                     user_data["PIN"] = new_pin
                     st.session_state.db[user] = user_data
                     save_data(st.session_state.db)
-                    st.success("PIN ustawiony! Odśwież stronę lub wpisz go poniżej.")
+                    st.success("Zapisano! Teraz wpisz PIN poniżej.")
                     st.rerun()
-                else:
-                    st.error("PIN musi mieć minimum 4 znaki.")
         else:
-            pin_input = st.text_input(f"Podaj swój PIN, {user}:", type="password")
+            pin_input = st.text_input(f"Podaj PIN, {user}:", type="password")
             if pin_input == saved_pin:
                 st.session_state.logged_user = user
-                st.success(f"Zalogowano jako {user}")
+                st.success("Zalogowano")
                 
                 new_picks = {}
                 options = ["4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
@@ -102,8 +101,6 @@ with tab1:
                     st.session_state.db[user] = new_picks
                     save_data(st.session_state.db)
                     st.success("✅ Typy zapisane!")
-            elif pin_input != "":
-                st.error("Błędny PIN!")
 
 with tab2:
     st.subheader("Tabela Wyników")
@@ -123,7 +120,6 @@ with tab2:
 with tab3:
     st.subheader("Drabinka")
     user_picks = st.session_state.db.get(st.session_state.logged_user, {}) if st.session_state.logged_user else {}
-    
     def bracket_card(t1, seed1, t2, seed2):
         match_key = f"{t1} vs {t2}"
         my_pick = user_picks.get(match_key, "-")
@@ -133,34 +129,26 @@ with tab3:
                 <div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div>
                 <span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span>
             </div>
-            <div style="text-align: center; margin: 5px 0;">
-                <span style="color: #666; font-size: 0.8em; background: #222; padding: 2px 10px; border-radius: 10px;">{my_pick}</span>
-            </div>
+            <div style="text-align: center; margin: 5px 0;"><span style="color: #666; font-size: 0.8em; background: #222; padding: 2px 10px; border-radius: 10px;">{my_pick}</span></div>
             <div style="display: flex; align-items: center;">
                 <div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div>
                 <span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span>
             </div>
         </div>
-        "", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    col_e, _, col_w = st.columns([1, 0.1, 1])
-    with col_e:
-        st.markdown("#### 🔵 WSCHÓD")
+    c_e, _, c_w = st.columns([1, 0.1, 1])
+    with c_e:
         bracket_card("Celtics", 1, "Heat", 8)
         bracket_card("Cavs", 4, "Magic", 5)
-        st.markdown("<br>", unsafe_allow_html=True)
         bracket_card("Bucks", 3, "Pacers", 6)
         bracket_card("Knicks", 2, "Sixers", 7)
-    with col_w:
-        st.markdown("#### 🔴 ZACHÓD")
+    with c_w:
         bracket_card("Thunder", 1, "Pelicans", 8)
         bracket_card("Clippers", 4, "Mavericks", 5)
-        st.markdown("<br>", unsafe_allow_html=True)
         bracket_card("Timberwolves", 3, "Suns", 6)
         bracket_card("Nuggets", 2, "Lakers", 7)
 
-# --- PANEL ADMINA (DODANY NA KOŃCU) ---
 st.markdown("---")
 if st.checkbox("Pokaż bazę danych (Admin)"):
-    st.subheader("Pełna zawartość bazy (Piny i Typy)")
     st.write(st.session_state.db)
