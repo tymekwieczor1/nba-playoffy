@@ -93,18 +93,18 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 
 st.markdown("""
     <style>
-    /* --- NOWE: MENU ZAKŁADEK (TABS) ZAWSZE NA GÓRZE I WIĘKSZE --- */
+    /* --- ZAKŁADKI ZAWSZE NA GÓRZE I WIĘKSZE --- */
     div[data-testid="stTabs"] > div:first-child {
         position: sticky;
-        top: 40px; /* Offset na domyślny pasek Streamlit */
+        top: 40px; 
         z-index: 999;
-        background-color: #0e1117; /* Ciemne tło, by ukryć przewijany tekst */
+        background-color: #0e1117; 
         padding: 10px 0 15px 0;
         border-bottom: 2px solid #333;
     }
     
     button[data-baseweb="tab"] p, button[data-baseweb="tab"] div {
-        font-size: 26px !important; /* Znacznie większa czcionka zakładek */
+        font-size: 26px !important; 
         font-weight: bold !important;
     }
 
@@ -228,7 +228,6 @@ with tab1:
         
         is_locked = now > START_TIME
 
-        # Grupowanie meczów ze względu na etapy
         STAGE_GROUPS = [
             ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
             ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
@@ -238,9 +237,16 @@ with tab1:
         ]
 
         for stage_name, keys in STAGE_GROUPS:
+            # Filtrowanie tylko tych kluczy, w których ZNANE są obie drużyny
+            valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
+            
+            # Jeśli w tym etapie nie ma jeszcze żadnego znanego meczu, w ogóle go nie wyświetlamy
+            if not valid_keys:
+                continue
+
             st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
             
-            for i, k in enumerate(keys):
+            for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 current_val = st.session_state.temp_picks.get(k, "4-0")
                 left_wins = int(current_val.split("-")[0]) == 4
@@ -297,8 +303,7 @@ with tab1:
                 st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Linia oddzielająca (wyświetlana pomiędzy meczami, ale nie na końcu grupy)
-                if i < len(keys) - 1:
+                if i < len(valid_keys) - 1:
                     st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -334,16 +339,21 @@ with tab3:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown('<div class="round-header">ZACHÓD</div>', unsafe_allow_html=True)
-    for k in ["W1", "W2", "W3", "W4"]: draw_bracket_card(k)
-    st.markdown('<div class="round-header">WSCHÓD</div>', unsafe_allow_html=True)
-    for k in ["E1", "E2", "E3", "E4"]: draw_bracket_card(k)
-    st.markdown('<div class="round-header">PÓŁFINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
-    for k in ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]: draw_bracket_card(k)
-    st.markdown('<div class="round-header">FINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
-    for k in ["W_CF", "E_CF"]: draw_bracket_card(k)
-    st.markdown('<div class="round-header">FINAŁ NBA</div>', unsafe_allow_html=True)
-    draw_bracket_card("FINALS")
+    STAGE_GROUPS_BRACKET = [
+        ("ZACHÓD", ["W1", "W2", "W3", "W4"]),
+        ("WSCHÓD", ["E1", "E2", "E3", "E4"]),
+        ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
+        ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
+        ("FINAŁ NBA", ["FINALS"])
+    ]
+
+    for stage_name, keys in STAGE_GROUPS_BRACKET:
+        # Pokaż nagłówek tylko, jeśli jest chociaż jeden gotowy mecz w danym etapie
+        valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
+        if valid_keys:
+            st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
+            for k in valid_keys:
+                draw_bracket_card(k)
 
 # --- ADMIN ---
 with tab4:
@@ -353,9 +363,17 @@ with tab4:
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             curr = actual_res_db.get(k, "W toku")
+            
+            # Ukrywamy pole wyboru dla meczów, w których brakuje drużyn, 
+            # ale jednocześnie musimy przepisać starą (lub domyślną) wartość
+            if t1 == "TBD" or t2 == "TBD":
+                new_results[k] = curr
+                continue
+                
             opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
             idx = opts.index(curr) if curr in opts else 0
             new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=idx, key=f"adm_{k}")
+            
         if st.button("Zatwierdź Wyniki"):
             st.session_state.results["OFFICIAL"] = new_results
             save_data(st.session_state.results, "oficjalne_wyniki.csv")
