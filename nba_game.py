@@ -249,4 +249,49 @@ with tab2:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"))[0]
+        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"))[0] for k in ALL_KEYS)
+        leaderboard.append({"Gracz": p, "Suma": pts})
+    st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False))
+
+# --- DRABINKA ---
+with tab3:
+    def draw_bracket_card(k):
+        t1, t2, s1, s2 = BRACKET[k]
+        u_pick = st.session_state.db.get(st.session_state.logged_user, {}).get(k, "-") if st.session_state.logged_user else "-"
+        a_res = actual_res_db.get(k, "W toku")
+        pts, css_box, css_pts = get_points_logic(u_pick, a_res)
+        
+        st.markdown(f"""
+        <div class="match-box {css_box}">
+            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
+            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Twój typ: {u_pick} <span class="pts-badge {css_pts}">+{pts}</span></div>
+            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div class="round-header">ZACHÓD</div>', unsafe_allow_html=True)
+    for k in ["W1", "W2", "W3", "W4"]: draw_bracket_card(k)
+    st.markdown('<div class="round-header">WSCHÓD</div>', unsafe_allow_html=True)
+    for k in ["E1", "E2", "E3", "E4"]: draw_bracket_card(k)
+    st.markdown('<div class="round-header">PÓŁFINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
+    for k in ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]: draw_bracket_card(k)
+    st.markdown('<div class="round-header">FINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
+    for k in ["W_CF", "E_CF"]: draw_bracket_card(k)
+    st.markdown('<div class="round-header">FINAŁ NBA</div>', unsafe_allow_html=True)
+    draw_bracket_card("FINALS")
+
+# --- ADMIN ---
+with tab4:
+    admin_auth = st.text_input("Kod Administratora:", type="password")
+    if admin_auth == ADMIN_PIN:
+        new_results = {}
+        for k in ALL_KEYS:
+            t1, t2 = BRACKET[k][0], BRACKET[k][1]
+            curr = actual_res_db.get(k, "W toku")
+            opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
+            idx = opts.index(curr) if curr in opts else 0
+            new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=idx, key=f"adm_{k}")
+        if st.button("Zatwierdź Wyniki"):
+            st.session_state.results["OFFICIAL"] = new_results
+            save_data(st.session_state.results, "oficjalne_wyniki.csv")
+            st.rerun()
