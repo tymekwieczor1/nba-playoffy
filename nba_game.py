@@ -94,10 +94,10 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 st.markdown("""
     <style>
     .match-card { 
-        margin-bottom: 80px; /* ZNACZNIE ZWIĘKSZONY ODSTĘP MIĘDZY MECZAMI */
+        margin-bottom: 80px; 
     }
     
-    /* --- ZMODYFIKOWANY KONTENER DRUŻYNY --- */
+    /* --- KONTENER DRUŻYNY --- */
     .team-box {
         border-radius: 15px;
         padding: 15px;
@@ -148,13 +148,22 @@ st.markdown("""
         color: #0099ff !important;
     }
 
-    /* --- ZWIĘKSZENIE CZCIONKI W SELECTBOXACH (ROZWIJANE MENU) --- */
+    /* --- DRASTYCZNIE ZWIĘKSZONA CZCIONKA W MENU ROZWIJANYM --- */
+    div[data-baseweb="select"] {
+        font-size: 26px !important; /* Ogromny tekst w samym polu */
+    }
     div[data-baseweb="select"] > div {
-        font-size: 1.2rem !important;
-        min-height: 50px !important;
+        font-size: 26px !important;
+        min-height: 60px !important; /* Wyższe pole select */
     }
     div[data-baseweb="popover"] ul li {
-        font-size: 1.2rem !important;
+        font-size: 26px !important; /* Ogromny tekst na rozwijanej liście */
+        padding: 15px !important; /* Więcej miejsca między opcjami */
+    }
+    /* Powiększenie strzałki w selectboxie */
+    div[data-baseweb="select"] svg {
+        width: 24px !important;
+        height: 24px !important;
     }
 
     .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #f82910; font-weight: bold; }
@@ -197,7 +206,6 @@ with tab1:
             num_games = sum(map(int, current_val.split("-")))
 
             st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
-            # Duży nagłówek wyśrodkowany
             st.markdown(f"<h3 style='text-align: center; margin-bottom: 20px;'>{t1} vs {t2}</h3>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
@@ -231,10 +239,9 @@ with tab1:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # WŁASNY, DUŻY ETYKIET (Zamiast domyślnego w selectbox)
-            st.markdown(f'<div style="font-size: 1.2em; font-weight: bold; margin-bottom: 5px;">Liczba meczów serii:</div>', unsafe_allow_html=True)
+            # OGROMNY NAPIS "Liczba meczów serii"
+            st.markdown(f'<div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Liczba meczów serii:</div>', unsafe_allow_html=True)
             
-            # Selectbox z ukrytym domyślnym labelem
             selected_games = st.selectbox(
                 f"Ukryty Label {k}", 
                 [4, 5, 6, 7], 
@@ -247,8 +254,8 @@ with tab1:
             if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
             else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
             
-            # POWIĘKSZONY TEKST "TWÓJ TYP" Z NIEBIESKIM WYNIKIEM
-            st.markdown(f'<p style="margin-top:25px; font-size: 1.2em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
+            # OGROMNY NAPIS "Twój typ"
+            st.markdown(f'<p style="margin-top:20px; font-size: 28px;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}</b></p>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_locked):
