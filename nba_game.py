@@ -44,7 +44,9 @@ st.markdown("""
 
 def load_data():
     if os.path.exists("wyniki.csv"):
-        try: return pd.read_csv("wyniki.csv", index_col=0).to_dict('index')
+        try: 
+            # KLUCZOWA ZMIANA: Wymuszamy wczytywanie kolumny PIN jako tekst (str)
+            return pd.read_csv("wyniki.csv", index_col=0, dtype={'PIN': str}).to_dict('index')
         except: return {}
     return {}
 
@@ -67,22 +69,23 @@ with tab1:
     user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
     if user:
         user_data = st.session_state.db.get(user, {})
-        saved_pwd = str(user_data.get("PIN", "")) # Pole w bazie nadal nazywa się PIN dla kompatybilności
+        # Zabezpieczenie: konwertujemy na string i usuwamy .0 jeśli pandas dodał to do liczb
+        saved_pwd = str(user_data.get("PIN", ""))
+        if saved_pwd.endswith(".0"): saved_pwd = saved_pwd[:-2]
 
         if saved_pwd == "" or saved_pwd == "nan":
             st.warning(f"Cześć {user}! Nie masz jeszcze ustalonego hasła.")
             new_pwd = st.text_input("Ustal swoje hasło dostępu:", type="password", key=f"setup_{user}")
             if st.button("Zapisz moje hasło"):
                 if len(new_pwd) >= 3:
-                    user_data["PIN"] = new_pwd
+                    user_data["PIN"] = str(new_pwd) # Zapisujemy jako string
                     st.session_state.db[user] = user_data
                     save_data(st.session_state.db)
-                    st.success("Hasło zapisane! Teraz wpisz je poniżej, aby się zalogować.")
+                    st.success("Hasło zapisane! Odśwież stronę (F5) i zaloguj się.")
                     st.rerun()
                 else:
                     st.error("Hasło musi mieć minimum 3 znaki.")
         else:
-            # Używamy unikalnego klucza dla każdego użytkownika, aby uniknąć błędów walidacji
             pwd_input = st.text_input(f"Podaj hasło dla {user}:", type="password", key=f"login_{user}")
             
             if pwd_input == saved_pwd:
@@ -105,8 +108,10 @@ with tab1:
                     save_data(st.session_state.db)
                     st.success("✅ Typy zapisane!")
             elif pwd_input != "":
-                st.error("Błędne hasło! Spróbuj ponownie.")
+                # Dodatkowa podpowiedź dla Admina w razie problemów
+                st.error("Błędne hasło!")
 
+# ... (reszta kodu tab2, tab3, tab4 pozostaje bez zmian)
 with tab2:
     st.subheader("Tabela Wyników")
     if not st.session_state.db:
@@ -158,5 +163,3 @@ with tab4:
             st.dataframe(df_admin)
             csv_data = df_admin.to_csv().encode('utf-8')
             st.download_button(label="Pobierz backup CSV", data=csv_data, file_name="wyniki_nba.csv", mime="text/csv")
-    elif admin_auth != "":
-        st.error("Błąd autoryzacji")
