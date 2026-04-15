@@ -37,12 +37,18 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wi
 st.markdown("""
     <style>
     .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
+    
+    /* Kafelki */
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .res-exact { background-color: rgba(0, 200, 0, 0.2) !important; border-color: rgba(0, 255, 0, 0.5) !important; }
     .res-winner { background-color: rgba(0, 0, 200, 0.2) !important; border-color: rgba(0, 0, 255, 0.5) !important; }
     .res-wrong { background-color: rgba(200, 0, 0, 0.2) !important; border-color: rgba(255, 0, 0, 0.5) !important; }
+    
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-    .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 5px; }
+    
+    /* Punkty */
+    .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
+    .pts-normal { background-color: #444; color: #bbb; } /* Szary dla 0 pkt / w toku */
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
     .pts-wrong { background-color: #800000; color: white; }
@@ -60,9 +66,11 @@ def save_data(data, filename="wyniki.csv"):
 
 def get_points_logic(user_pick, actual_result):
     if actual_result == "W toku" or actual_result == "" or pd.isna(actual_result) or user_pick == "-":
-        return 0, "", ""
+        return 0, "", "pts-normal"
+    
     if user_pick == actual_result:
         return 2, "res-exact", "pts-exact"
+    
     try:
         u_scores = user_pick.split("-")
         a_scores = actual_result.split("-")
@@ -71,6 +79,7 @@ def get_points_logic(user_pick, actual_result):
         if u_left_wins == a_left_wins:
             return 1, "res-winner", "pts-winner"
     except: pass
+    
     return 0, "res-wrong", "pts-wrong"
 
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
@@ -161,24 +170,25 @@ with tab3:
     curr_user = st.session_state.logged_user
     actual_results_db = st.session_state.results.get("OFFICIAL", {})
     u_picks = st.session_state.db.get(curr_user, {}) if curr_user else {}
-    if not curr_user: st.info("💡 Zaloguj się, aby zobaczyć podświetlenie i punkty.")
 
     def bracket_card_dynamic(t1, seed1, t2, seed2):
         match_key = f"{t1} vs {t2}"
         my_pick = u_picks.get(match_key, "-")
         actual_res = actual_results_db.get(match_key, "W toku")
         pts, css_box, css_pts = get_points_logic(my_pick, actual_res)
-        status_text = f"Wynik: {actual_res}" if actual_res != "W toku" else "W toku"
-        pts_html = f'<span class="pts-badge {css_pts}">+{pts} pkt</span>' if actual_res != "W toku" and curr_user else ""
+        
+        # Wyświetlanie statusu i punktów (zawsze +0 pkt jeśli w toku)
+        status_display = "W toku" if actual_res == "W toku" else f"Wynik: {actual_res}"
+        pts_display = f"+{pts} pkt"
         
         st.markdown(f"""
         <div class="match-box {css_box}">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div><span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span></div>
             <div style="text-align: center; margin: 8px 0;">
-                <span style="color: #bbb; font-size: 0.8em; background: rgba(0,0,0,0.5); padding: 2px 10px; border-radius: 10px; font-style: italic;">{status_text}</span><br>
+                <span style="color: #bbb; font-size: 0.8em; background: rgba(0,0,0,0.5); padding: 2px 10px; border-radius: 10px; font-style: italic;">{status_display}</span><br>
                 <div style="margin-top: 5px;">
                     <span style="color: #fff; font-size: 0.9em; font-weight: bold; background: #222; padding: 3px 12px; border-radius: 10px; display: inline-block;">Twoje: {my_pick}</span>
-                    {pts_html}
+                    <span class="pts-badge {css_pts}">{pts_display}</span>
                 </div>
             </div>
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div><span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span></div>
