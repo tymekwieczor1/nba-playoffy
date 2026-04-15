@@ -41,7 +41,7 @@ st.markdown("""
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; }
     </style>
-    """, unsafe_allow_html=True)
+    "", unsafe_allow_html=True)
 
 def load_data():
     if os.path.exists("wyniki.csv"):
@@ -53,7 +53,7 @@ def save_data(data):
     pd.DataFrame.from_dict(data, orient='index').to_csv("wyniki.csv")
 
 if 'db' not in st.session_state:
-    st.session_state.db = load_data()
+    st.session_state.db = {}
 if 'logged_user' not in st.session_state:
     st.session_state.logged_user = None
 
