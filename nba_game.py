@@ -9,9 +9,7 @@ ADMIN_PIN = "1398"
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
-# Słownik LOGOS - NBA 2026
 LOGOS = {
-    # Zachód
     "Thunder": "https://loodibee.com/wp-content/uploads/nba-oklahoma-city-thunder-logo.png",
     "Lakers": "https://loodibee.com/wp-content/uploads/nba-los-angeles-lakers-logo.png",
     "Rockets": "https://loodibee.com/wp-content/uploads/nba-houston-rockets-logo.png",
@@ -19,21 +17,16 @@ LOGOS = {
     "Timberwolves": "https://loodibee.com/wp-content/uploads/nba-minnesota-timberwolves-logo.png",
     "Spurs": "https://loodibee.com/wp-content/uploads/nba-san-antonio-spurs-logo.png",
     "Trail Blazers": "https://loodibee.com/wp-content/uploads/nba-portland-trail-blazers-logo.png",
-    
-    # Wschód
     "Pistons": "https://loodibee.com/wp-content/uploads/nba-detroit-pistons-logo.png",
     "Cavaliers": "https://loodibee.com/wp-content/uploads/nba-cleveland-cavaliers-logo.png",
     "Raptors": "https://loodibee.com/wp-content/uploads/nba-toronto-raptors-logo.png",
     "Knicks": "https://loodibee.com/wp-content/uploads/nba-new-york-knicks-logo.png",
     "Hawks": "https://loodibee.com/wp-content/uploads/nba-atlanta-hawks-logo.png",
     "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
-    
-    # Placeholder dla nieustalonych seedów
     "8 Seed": "https://via.placeholder.com/150/ffffff/000000?text=8+SEED",
     "7 Seed": "https://via.placeholder.com/150/ffffff/000000?text=7+SEED"
 }
 
-# Pary meczowe NBA 2026
 SERIES = [
     "Thunder vs 8 Seed", "Lakers vs Rockets", "Nuggets vs Timberwolves", "Spurs vs Trail Blazers",
     "Pistons vs 8 Seed", "Cavaliers vs Raptors", "Knicks vs Hawks", "Celtics vs 7 Seed"
@@ -49,18 +42,36 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-def load_data():
-    if os.path.exists("wyniki.csv"):
-        try: return pd.read_csv("wyniki.csv", index_col=0, dtype={'PIN': str}).to_dict('index')
+def load_data(filename="wyniki.csv"):
+    if os.path.exists(filename):
+        try: return pd.read_csv(filename, index_col=0, dtype=str).to_dict('index')
         except: return {}
     return {}
 
-def save_data(data):
-    pd.DataFrame.from_dict(data, orient='index').to_csv("wyniki.csv")
+def save_data(data, filename="wyniki.csv"):
+    pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
+def calculate_points(user_pick, actual_result):
+    if actual_result == "W toku" or actual_result == "" or pd.isna(actual_result):
+        return 0
+    if user_pick == actual_result:
+        return 2
+    
+    # Wyciąganie zwycięzcy z formatu "4-2" (lewa strona wygrywa jeśli pierwsza cyfra > druga)
+    try:
+        u_win = int(user_pick.split("-")[0]) > int(user_pick.split("-")[1])
+        a_win = int(actual_result.split("-")[0]) > int(actual_result.split("-")[1])
+        if u_win == a_win:
+            return 1
+    except:
+        pass
+    return 0
+
+# Inicjalizacja baz
 if 'db' not in st.session_state:
-    st.session_state.db = load_data()
-
+    st.session_state.db = load_data("wyniki.csv")
+if 'results' not in st.session_state:
+    st.session_state.results = load_data("oficjalne_wyniki.csv")
 if 'logged_user' not in st.session_state:
     st.session_state.logged_user = None
 
@@ -89,7 +100,7 @@ with tab1:
                             if len(new_pwd) >= 3:
                                 user_data["PIN"] = str(new_pwd)
                                 st.session_state.db[user] = user_data
-                                save_data(st.session_state.db)
+                                save_data(st.session_state.db, "wyniki.csv")
                                 st.session_state.logged_user = user
                                 st.rerun()
                     else:
@@ -120,24 +131,38 @@ with tab1:
         if st.button("Zapisz wszystkie typy", disabled=is_locked, use_container_width=True):
             new_picks["PIN"] = user_data.get("PIN")
             st.session_state.db[st.session_state.logged_user] = new_picks
-            save_data(st.session_state.db)
+            save_data(st.session_state.db, "wyniki.csv")
             st.balloons()
             st.success("✅ Typy na NBA 2026 zapisane!")
 
 with tab2:
     st.subheader("Tabela Wyników NBA 2026")
-    if not st.session_state.db:
-        st.write("Brak danych.")
-    else:
-        display_rows = []
-        for p in PLAYERS:
-            row = {"Gracz": p}
-            p_data = st.session_state.db.get(p, {})
-            for match in SERIES:
-                val = p_data.get(match, "-")
-                row[match] = "🔒" if (not is_locked and p != st.session_state.logged_user) else val
-            display_rows.append(row)
-        st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
+    actual_results = st.session_state.results.get("OFFICIAL", {})
+    
+    leaderboard = []
+    for p in PLAYERS:
+        p_data = st.session_state.db.get(p, {})
+        total_pts = 0
+        player_row = {"Gracz": p}
+        
+        for match in SERIES:
+            u_pick = p_data.get(match, "-")
+            a_res = actual_results.get(match, "W toku")
+            
+            pts = calculate_points(u_pick, a_res) if u_pick != "-" else 0
+            total_pts += pts
+            
+            # Widok typów (ukryty przed startem)
+            if not is_locked and p != st.session_state.logged_user:
+                player_row[match] = "🔒"
+            else:
+                player_row[match] = u_pick
+        
+        player_row["SUMA PKT"] = total_pts
+        leaderboard.append(player_row)
+    
+    df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="SUMA PKT", ascending=False)
+    st.dataframe(df_leaderboard, use_container_width=True)
 
 with tab3:
     st.subheader("📊 Drabinka Playoff NBA 2026")
@@ -158,26 +183,45 @@ with tab3:
     c_e, _, c_w = st.columns([1, 0.1, 1])
     with c_e:
         st.markdown("#### 🔵 WSCHÓD")
-        bracket_card("Pistons", 1, "8 Seed", 8)
-        bracket_card("Cavaliers", 4, "Raptors", 5)
+        bracket_card("Pistons", 1, "8 Seed", 8); bracket_card("Cavaliers", 4, "Raptors", 5)
         st.markdown("<br>", unsafe_allow_html=True)
-        bracket_card("Knicks", 3, "Hawks", 6)
-        bracket_card("Celtics", 2, "7 Seed", 7)
+        bracket_card("Knicks", 3, "Hawks", 6); bracket_card("Celtics", 2, "7 Seed", 7)
     with c_w:
         st.markdown("#### 🔴 ZACHÓD")
-        bracket_card("Thunder", 1, "8 Seed", 8)
-        bracket_card("Lakers", 4, "Rockets", 5)
+        bracket_card("Thunder", 1, "8 Seed", 8); bracket_card("Lakers", 4, "Rockets", 5)
         st.markdown("<br>", unsafe_allow_html=True)
-        bracket_card("Nuggets", 3, "Timberwolves", 6)
-        bracket_card("Spurs", 2, "Trail Blazers", 7)
+        bracket_card("Nuggets", 3, "Timberwolves", 6); bracket_card("Spurs", 2, "Trail Blazers", 7)
 
 with tab4:
-    st.subheader("⚙️ Admin")
+    st.subheader("⚙️ Panel Administratora")
     admin_auth = st.text_input("Kod:", type="password", key="admin_pwd")
     if admin_auth == ADMIN_PIN:
         st.success("Dostęp przyznany")
+        
+        st.markdown("### 🏆 Wpisz oficjalne wyniki meczów")
+        st.info("Wybierz wynik, gdy seria się zakończy. 'W toku' nie przyznaje punktów.")
+        
+        off_res = st.session_state.results.get("OFFICIAL", {})
+        new_off_res = {}
+        options_off = ["W toku", "4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
+        
+        cols_off = st.columns(2)
+        for i, match in enumerate(SERIES):
+            current_off = off_res.get(match, "W toku")
+            idx_off = options_off.index(current_off) if current_off in options_off else 0
+            new_val = cols_off[i % 2].selectbox(f"Wynik: {match}", options_off, index=idx_off, key=f"off_{match}")
+            new_off_res[match] = new_val
+            
+        if st.button("Zatwierdź oficjalne wyniki"):
+            st.session_state.results["OFFICIAL"] = new_off_res
+            save_data(st.session_state.results, "oficjalne_wyniki.csv")
+            st.success("Wyniki zapisane! Punkty w tabeli zostały przeliczone.")
+            st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 📊 Zarządzanie bazą")
         if st.session_state.db:
             df_admin = pd.DataFrame.from_dict(st.session_state.db, orient='index')
             st.dataframe(df_admin)
             csv_data = df_admin.to_csv().encode('utf-8')
-            st.download_button(label="Pobierz backup CSV", data=csv_data, file_name="wyniki_nba_2026.csv", mime="text/csv")
+            st.download_button(label="Pobierz backup typów (CSV)", data=csv_data, file_name="wyniki_nba_2026.csv", mime="text/csv")
