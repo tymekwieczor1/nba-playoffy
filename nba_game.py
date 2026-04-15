@@ -38,7 +38,6 @@ st.markdown("""
     <style>
     .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
     
-    /* Główne kontenery konferencji */
     .conf-container {
         background-color: rgba(255, 255, 255, 0.03);
         padding: 20px;
@@ -47,7 +46,6 @@ st.markdown("""
         margin-bottom: 20px;
     }
     
-    /* Kafelki meczów */
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
     .res-exact { background-color: rgba(0, 200, 0, 0.15) !important; border-color: rgba(0, 255, 0, 0.4) !important; }
     .res-winner { background-color: rgba(0, 0, 200, 0.15) !important; border-color: rgba(0, 0, 255, 0.4) !important; }
@@ -173,9 +171,13 @@ with tab2:
         df_leaderboard = pd.DataFrame(leaderboard).sort_values(by="SUMA PKT", ascending=False)
         st.dataframe(df_leaderboard, use_container_width=True)
 
-# --- TAB 3: DRABINKA (Z PODKAFELKAMI) ---
+# --- TAB 3: DRABINKA (Z WYBOREM KONFERENCJI) ---
 with tab3:
     st.subheader("📊 Drabinka Playoff NBA 2026")
+    
+    # Przełącznik konferencji
+    view_mode = st.radio("Wybierz widok:", ["Wszystko", "Wschód 🔵", "Zachód 🔴"], horizontal=True)
+    
     curr_user = st.session_state.logged_user
     actual_results_db = st.session_state.results.get("OFFICIAL", {})
     u_picks = st.session_state.db.get(curr_user, {}) if curr_user else {}
@@ -201,25 +203,33 @@ with tab3:
         </div>
         """
 
-    col_east, col_west = st.columns(2)
+    # Logika wyświetlania kolumn w zależności od wyboru
+    if view_mode == "Wszystko":
+        col_east, col_west = st.columns(2)
+    elif view_mode == "Wschód 🔵":
+        col_east, col_west = st.columns([1, 0.01]) # Schowaj zachód
+    else:
+        col_east, col_west = st.columns([0.01, 1]) # Schowaj wschód
 
-    with col_east:
-        st.markdown('<div class="conf-container"><h4>🔵 WSCHÓD</h4>', unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Pistons", 1, "8 Seed", 8), unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Cavaliers", 4, "Raptors", 5), unsafe_allow_html=True)
-        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Knicks", 3, "Hawks", 6), unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Celtics", 2, "7 Seed", 7), unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    if view_mode != "Zachód 🔴":
+        with col_east:
+            st.markdown('<div class="conf-container"><h4>🔵 WSCHÓD</h4>', unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Pistons", 1, "8 Seed", 8), unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Cavaliers", 4, "Raptors", 5), unsafe_allow_html=True)
+            st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Knicks", 3, "Hawks", 6), unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Celtics", 2, "7 Seed", 7), unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_west:
-        st.markdown('<div class="conf-container"><h4>🔴 ZACHÓD</h4>', unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Thunder", 1, "8 Seed", 8), unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Lakers", 4, "Rockets", 5), unsafe_allow_html=True)
-        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Nuggets", 3, "Timberwolves", 6), unsafe_allow_html=True)
-        st.markdown(render_bracket_card("Spurs", 2, "Trail Blazers", 7), unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    if view_mode != "Wschód 🔵":
+        with col_west:
+            st.markdown('<div class="conf-container"><h4>🔴 ZACHÓD</h4>', unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Thunder", 1, "8 Seed", 8), unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Lakers", 4, "Rockets", 5), unsafe_allow_html=True)
+            st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Nuggets", 3, "Timberwolves", 6), unsafe_allow_html=True)
+            st.markdown(render_bracket_card("Spurs", 2, "Trail Blazers", 7), unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 4: ADMIN ---
 with tab4:
