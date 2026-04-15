@@ -47,6 +47,26 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
+# --- TUTAJ WPISUJESZ KURSY BUKMACHERSKIE ---
+ODDS = {
+    "Thunder": 1.25,
+    "8 Seed": 3.50,
+    "Lakers": 1.85,
+    "Rockets": 1.95,
+    "Nuggets": 1.40,
+    "Timberwolves": 2.70,
+    "Spurs": 1.60,
+    "Trail Blazers": 2.20,
+    "Pistons": 1.30,
+    "Cavaliers": 1.75,
+    "Raptors": 2.05,
+    "Knicks": 1.50,
+    "Hawks": 2.40,
+    "Celtics": 1.15,
+    "7 Seed": 4.80,
+    "TBD": "-"
+}
+
 # --- 2. FUNKCJE ---
 def load_data(filename):
     if os.path.exists(filename):
@@ -68,12 +88,12 @@ def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False
         
         if str(user_pick) == str(actual_result): 
             pts = 5 * multiplier
-            if is_hot_take: pts += 5  # +2 za zwycięzcę, +3 za idealny wynik (omija mnożnik)
+            if is_hot_take: pts += 5  
             return pts, "res-exact", "pts-exact"
             
         elif u_left_wins == a_left_wins: 
             pts = 3 * multiplier
-            if is_hot_take: pts += 2  # +2 za samego zwycięzcę (omija mnożnik)
+            if is_hot_take: pts += 2  
             return pts, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
@@ -122,32 +142,25 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 
 st.markdown("""
     <style>
-    /* --- ZAKŁADKI ZAWSZE NA GÓRZE I WIĘKSZE --- */
     div[data-testid="stTabs"] > div:first-child {
-        position: sticky;
-        top: 40px; 
-        z-index: 999;
-        background-color: #0e1117; 
-        padding: 10px 0 15px 0;
-        border-bottom: 2px solid #333;
+        position: sticky; top: 40px; z-index: 999;
+        background-color: #0e1117; padding: 10px 0 15px 0; border-bottom: 2px solid #333;
     }
     
     button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 26px !important; font-weight: bold !important; }
     button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
     .match-card { margin-bottom: 20px; }
     
-    /* --- KONTENER DRUŻYNY --- */
     .team-box {
         border-radius: 15px; padding: 15px; text-align: center; border: 2px solid #444;
-        background: rgba(255,255,255,0.02); transition: 0.3s; height: 140px; 
+        background: rgba(255,255,255,0.02); transition: 0.3s; height: 160px; 
         display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .team-box img { margin-bottom: 10px; max-height: 60px; object-fit: contain; }
     
-    div.element-container:has(.team-box) + div.element-container { margin-top: -140px; position: relative; z-index: 10; }
-    div.element-container:has(.team-box) + div.element-container button { height: 140px; opacity: 0 !important; cursor: pointer; }
+    div.element-container:has(.team-box) + div.element-container { margin-top: -160px; position: relative; z-index: 10; }
+    div.element-container:has(.team-box) + div.element-container button { height: 160px; opacity: 0 !important; cursor: pointer; }
 
-    /* --- KONTENER HOT TAKE --- */
     .hot-box {
         border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
         background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px;
@@ -158,7 +171,6 @@ st.markdown("""
     div.element-container:has(.hot-box) + div.element-container { margin-top: -90px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
 
-    /* Różne style */
     .selected-blue { border: 3px solid #0099ff !important; background: rgba(0, 153, 255, 0.1) !important; box-shadow: 0 0 10px rgba(0, 153, 255, 0.3); }
     .unselected { opacity: 0.5; filter: grayscale(50%); }
     
@@ -204,7 +216,6 @@ with tab1:
         
         is_global_locked = now > START_TIME
 
-        # Zliczanie użytych Hot Take'ów
         hot_takes_used = sum(1 for k in ALL_KEYS if str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true")
         
         st.markdown(f"""
@@ -230,16 +241,13 @@ with tab1:
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                # Zabezpieczenie przed błędem z pustym wynikiem
                 current_val = st.session_state.temp_picks.get(k, "4-0")
                 if pd.isna(current_val) or not isinstance(current_val, str) or "-" not in str(current_val):
                     current_val = "4-0"
                 
-                # Status meczu (czy Admin już coś wpisał?)
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
                 match_locked = is_global_locked or is_match_result_known
 
-                # Status Hot Take
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
                 can_use_hot = is_hot or (hot_takes_used < 2)
@@ -256,18 +264,29 @@ with tab1:
                 logo_t2 = LOGOS.get(t2, LOGOS["TBD"])
                 
                 with c1:
-                    st.markdown(f'<div class="team-box {"selected-blue" if left_wins else "unselected"}"><img src="{logo_t1}" alt="{t1}"><span style="font-weight: bold; font-size: 1.1em;">{t1}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'''
+                    <div class="team-box {"selected-blue" if left_wins else "unselected"}">
+                        <img src="{logo_t1}" alt="{t1}">
+                        <span style="font-weight: bold; font-size: 1.1em;">{t1}</span>
+                        <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t1, "-")}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"
                         st.rerun()
 
                 with c2:
-                    st.markdown(f'<div class="team-box {"selected-blue" if not left_wins else "unselected"}"><img src="{logo_t2}" alt="{t2}"><span style="font-weight: bold; font-size: 1.1em;">{t2}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'''
+                    <div class="team-box {"selected-blue" if not left_wins else "unselected"}">
+                        <img src="{logo_t2}" alt="{t2}">
+                        <span style="font-weight: bold; font-size: 1.1em;">{t2}</span>
+                        <span style="font-size: 0.85em; color: #f39c12; margin-top: 5px;">Kurs: {ODDS.get(t2, "-")}</span>
+                    </div>
+                    ''', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"
                         st.rerun()
                 
-                # Przycisk HOT TAKE
                 st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
                 if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
                     if is_hot:
@@ -293,7 +312,6 @@ with tab1:
                 if left_wins: st.session_state.temp_picks[k] = f"4-{selected_games-4}"
                 else: st.session_state.temp_picks[k] = f"{selected_games-4}-4"
                 
-                # Dodano wyświetlanie ikony 🔥 obok typu, jeśli aktywowano
                 hot_icon_display = " 🔥" if is_hot else ""
                 st.markdown(f'<p style="margin-top:15px; font-size: 1.3em;">Twój typ: <b style="color: #0099ff;">{st.session_state.temp_picks[k]}{hot_icon_display}</b></p>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -302,7 +320,6 @@ with tab1:
                     st.markdown("<hr style='margin: 30px 0; border: 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        # Zapis blokujemy tylko globalnie (żeby można było dopisywać do nowych meczów)
         if st.button("ZAPISZ WSZYSTKIE TYPY", use_container_width=True, disabled=is_global_locked):
             st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
             save_data(st.session_state.db, "wyniki.csv")
