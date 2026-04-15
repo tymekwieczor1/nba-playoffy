@@ -11,7 +11,7 @@ USER_PINS = {
     "Kowal": "461829", "Paweł": "735106", "Mateusz": "284963", "Tomasz": "619247"
 }
 
-# Linki do logo drużyn
+# Linki do logo drużyn (zaktualizowane Denver i poprawiona czytelność)
 LOGOS = {
     "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
     "Heat": "https://loodibee.com/wp-content/uploads/nba-miami-heat-logo.png",
@@ -38,6 +38,25 @@ SERIES = [
 ]
 
 st.set_page_config(page_title="NBA Playoff Predictor", page_icon="🏀", layout="wide")
+
+# Stylizacja dla białego tła pod logami i obramowania meczów
+st.markdown("""
+    <style>
+    .match-box {
+        border: 1px solid #444;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    .logo-bg {
+        background-color: white;
+        border-radius: 50%;
+        padding: 5px;
+        display: inline-block;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 def load_data():
     if os.path.exists("wyniki.csv"):
@@ -98,27 +117,42 @@ with tab2:
         st.dataframe(pd.DataFrame(display_rows), use_container_width=True)
 
 with tab3:
-    st.subheader("Aktualna Drabinka Playoffów")
+    st.subheader("Drabinka Pierwszej Rundy")
     
-    def match_row(t1, t2):
-        c1, c2, c3, c4 = st.columns([0.2, 1, 0.2, 1])
-        c1.image(LOGOS[t1], width=40)
-        c2.write(f"**{t1}**")
-        c3.image(LOGOS[t2], width=40)
-        c4.write(f"**{t2}**")
+    def bracket_card(t1, seed1, t2, seed2):
+        with st.container():
+            st.markdown(f"""
+            <div class="match-box">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div>
+                        <span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span>
+                    </div>
+                </div>
+                <div style="text-align: center; color: #888; font-size: 0.8em; margin: 5px 0;">VS</div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center;">
+                        <div class="logo-bg"><img src="{LOGOS[t2]}" width="35"></div>
+                        <span style="margin-left: 10px; font-weight: bold;">({seed2}) {t2}</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    col_west, col_empty, col_east = st.columns([1, 0.1, 1])
+    col_east, col_space, col_west = st.columns([1, 0.1, 1])
     
     with col_east:
-        st.markdown("### 🔵 KONFERENCJA WSCHODNIA")
-        match_row("Celtics", "Heat")
-        match_row("Cavs", "Magic")
-        match_row("Bucks", "Pacers")
-        match_row("Knicks", "Sixers")
+        st.markdown("#### 🔵 KONFERENCJA WSCHODNIA")
+        bracket_card("Celtics", 1, "Heat", 8)
+        bracket_card("Cavs", 4, "Magic", 5)
+        st.markdown("<br>", unsafe_allow_html=True)
+        bracket_card("Bucks", 3, "Pacers", 6)
+        bracket_card("Knicks", 2, "Sixers", 7)
 
     with col_west:
-        st.markdown("### 🔴 KONFERENCJA ZACHODNIA")
-        match_row("Thunder", "Pelicans")
-        match_row("Clippers", "Mavericks")
-        match_row("Timberwolves", "Suns")
-        match_row("Nuggets", "Lakers")
+        st.markdown("#### 🔴 KONFERENCJA ZACHODNIA")
+        bracket_card("Thunder", 1, "Pelicans", 8)
+        bracket_card("Clippers", 4, "Mavericks", 5)
+        st.markdown("<br>", unsafe_allow_html=True)
+        bracket_card("Timberwolves", 3, "Suns", 6)
+        bracket_card("Nuggets", 2, "Lakers", 7)
