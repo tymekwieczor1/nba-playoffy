@@ -34,17 +34,8 @@ SERIES = [
 
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wide")
 
-# ROZBUDOWANY CSS (Czcionka Action Condensed Bold i kolory)
 st.markdown("""
     <style>
-    @import url('https://fonts.cdnfonts.com/css/action-condensed');
-
-    /* Globalna zmiana czcionki na Action Condensed Bold */
-    html, body, [class*="st-"], .stMarkdown, p, h1, h2, h3, h4, span, div {
-        font-family: 'Action Condensed', sans-serif !important;
-        text-transform: uppercase; /* Font ten najlepiej wygląda wielkimi literami */
-    }
-
     .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .res-exact { background-color: rgba(0, 200, 0, 0.2) !important; border-color: rgba(0, 255, 0, 0.5) !important; }
