@@ -6,7 +6,6 @@ import os
 # --- KONFIGURACJA ---
 START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
-# DEFINIUJEMY 'now' TUTAJ, ABY BYŁO DOSTĘPNE W CAŁYM KODZIE
 now = datetime.now()
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
@@ -30,7 +29,6 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
-# Struktura drabinki
 R1_MAP = {
     "W1": ["Thunder", "8 Seed", "1", "8"], "W2": ["Lakers", "Rockets", "4", "5"],
     "W3": ["Nuggets", "Timberwolves", "3", "6"], "W4": ["Spurs", "Trail Blazers", "2", "7"],
@@ -42,17 +40,13 @@ ALL_SERIES_KEYS = list(R1_MAP.keys()) + ["W_SF1", "W_SF2", "E_SF1", "E_SF2", "W_
 
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="centered")
 
+# CSS dla przycisków wyboru
 st.markdown("""
     <style>
-    .login-box { background-color: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 15px; border: 1px solid #555; margin-bottom: 25px; }
+    .stButton > button { width: 100%; border-radius: 10px; font-weight: bold; }
+    .match-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid #444; margin-bottom: 20px; }
     .round-header { background-color: #1e1e1e; padding: 10px; border-radius: 10px; text-align: center; margin: 20px 0 10px 0; border-left: 5px solid #f82910; font-weight: bold; }
-    .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
-    .res-exact { background-color: rgba(0, 200, 0, 0.15) !important; border-color: rgba(0, 255, 0, 0.4) !important; }
-    .res-winner { background-color: rgba(0, 0, 200, 0.15) !important; border-color: rgba(0, 0, 255, 0.4) !important; }
-    .res-wrong { background-color: rgba(200, 0, 0, 0.15) !important; border-color: rgba(255, 0, 0, 0.4) !important; }
-    .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
-    .pts-normal { background-color: #444; color: #bbb; }
     .pts-exact { background-color: #008000; color: white; }
     .pts-winner { background-color: #000080; color: white; }
     .pts-wrong { background-color: #800000; color: white; }
@@ -79,41 +73,37 @@ def get_winner(match_key, results, current_bracket):
     return "TBD"
 
 def get_points_logic(user_pick, actual_result):
-    if actual_result == "W toku" or user_pick == "-": return 0, "", "pts-normal"
-    if user_pick == actual_result: return 5, "res-exact", "pts-exact"
+    if actual_result == "W toku" or user_pick == "-": return 0, "pts-normal"
+    if user_pick == actual_result: return 5, "pts-exact"
     try:
-        u_win = int(user_pick.split("-")[0]) == 4
-        a_win = int(actual_result.split("-")[0]) == 4
-        if u_win == a_win: return 3, "res-winner", "pts-winner"
+        u_left_win = int(user_pick.split("-")[0]) == 4
+        a_left_win = int(actual_result.split("-")[0]) == 4
+        if u_left_win == a_left_win: return 3, "pts-winner"
     except: pass
-    return 0, "res-wrong", "pts-wrong"
+    return 0, "pts-wrong"
 
-# Inicjalizacja baz
+# Bazy
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
 if 'results' not in st.session_state: st.session_state.results = load_data("oficjalne_wyniki.csv")
 if 'logged_user' not in st.session_state: st.session_state.logged_user = None
 
 actual_res_db = st.session_state.results.get("OFFICIAL", {})
 
-# Budowanie dynamicznej drabinki (kolejne rundy)
+# Drabinka
 BRACKET = {**R1_MAP}
-# R2
-BRACKET["W_SF1"] = [get_winner("W1", st.session_state.results, BRACKET), get_winner("W2", st.session_state.results, BRACKET), "1/8", "4/5"]
-BRACKET["W_SF2"] = [get_winner("W3", st.session_state.results, BRACKET), get_winner("W4", st.session_state.results, BRACKET), "3/6", "2/7"]
-BRACKET["E_SF1"] = [get_winner("E1", st.session_state.results, BRACKET), get_winner("E2", st.session_state.results, BRACKET), "1/8", "4/5"]
-BRACKET["E_SF2"] = [get_winner("E3", st.session_state.results, BRACKET), get_winner("E4", st.session_state.results, BRACKET), "3/6", "2/7"]
-# R3
-BRACKET["W_CF"] = [get_winner("W_SF1", st.session_state.results, BRACKET), get_winner("W_SF2", st.session_state.results, BRACKET), "SF", "SF"]
-BRACKET["E_CF"] = [get_winner("E_SF1", st.session_state.results, BRACKET), get_winner("E_SF2", st.session_state.results, BRACKET), "SF", "SF"]
-# Finał
-BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET), get_winner("E_CF", st.session_state.results, BRACKET), "West", "East"]
+BRACKET["W_SF1"] = [get_winner("W1", st.session_state.results, BRACKET), get_winner("W2", st.session_state.results, BRACKET), "SF", "SF"]
+BRACKET["W_SF2"] = [get_winner("W3", st.session_state.results, BRACKET), get_winner("W4", st.session_state.results, BRACKET), "SF", "SF"]
+BRACKET["E_SF1"] = [get_winner("E1", st.session_state.results, BRACKET), get_winner("E2", st.session_state.results, BRACKET), "SF", "SF"]
+BRACKET["E_SF2"] = [get_winner("E3", st.session_state.results, BRACKET), get_winner("E4", st.session_state.results, BRACKET), "SF", "SF"]
+BRACKET["W_CF"] = [get_winner("W_SF1", st.session_state.results, BRACKET), get_winner("W_SF2", st.session_state.results, BRACKET), "CF", "CF"]
+BRACKET["E_CF"] = [get_winner("E_SF1", st.session_state.results, BRACKET), get_winner("E_SF2", st.session_state.results, BRACKET), "CF", "CF"]
+BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET), get_winner("E_CF", st.session_state.results, BRACKET), "Final", "Final"]
 
 st.title("🏀 NBA Playoff 2026")
 tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
 
 with tab1:
     if st.session_state.logged_user is None:
-        st.markdown('<div class="login-box">', unsafe_allow_html=True)
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
         if user:
             user_data = st.session_state.db.get(user, {})
@@ -122,30 +112,49 @@ with tab1:
                 if pwd == user_data.get("PIN", "123"):
                     st.session_state.logged_user = user
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.success(f"Zalogowano jako: **{st.session_state.logged_user}**")
+        st.success(f"Zalogowano: **{st.session_state.logged_user}**")
         if st.button("Wyloguj"):
             st.session_state.logged_user = None
             st.rerun()
         
         user_picks = st.session_state.db.get(st.session_state.logged_user, {})
         new_picks = {"PIN": user_picks.get("PIN", "123")}
-        options = ["4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
+        
+        is_locked = now > START_TIME
         
         for k in ALL_SERIES_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
-            default_val = user_picks.get(k, "4-0")
-            idx = options.index(default_val) if default_val in options else 0
-            new_picks[k] = st.selectbox(f"{t1} vs {t2}", options, index=idx, key=f"p_{k}", disabled=now > START_TIME)
+            st.markdown(f"#### {t1} vs {t2}")
             
-        if st.button("Zapisz typy"):
+            # Pobieramy aktualny typ, by przyciski były zaznaczone
+            current_pick = user_picks.get(k, "4-0")
+            cur_left_win = int(current_pick.split("-")[0]) == 4
+            cur_games = sum(map(int, current_pick.split("-")))
+            
+            col_t1, col_t2 = st.columns(2)
+            # Wybór zwycięzcy
+            with col_t1:
+                t1_btn = st.radio(f"Zwycięzca:", [t1, t2], index=0 if cur_left_win else 1, key=f"win_{k}", disabled=is_locked)
+            # Wybór liczby meczów
+            with col_t2:
+                games_btn = st.radio(f"W ilu meczach?", [4, 5, 6, 7], index=[4, 5, 6, 7].index(cur_games), key=f"games_{k}", disabled=is_locked)
+            
+            # Przeliczanie na format 4-X
+            if t1_btn == t1:
+                final_val = f"4-{games_btn - 4}"
+            else:
+                final_val = f"{games_btn - 4}-4"
+            
+            new_picks[k] = final_val
+            st.markdown("---")
+            
+        if st.button("Zapisz wszystkie typy", disabled=is_locked):
             st.session_state.db[st.session_state.logged_user] = new_picks
             save_data(st.session_state.db, "wyniki.csv")
-            st.success("Zapisano!")
+            st.success("Typy zapisane!")
 
 with tab2:
-    st.subheader("Ranking")
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
@@ -154,35 +163,22 @@ with tab2:
     st.table(pd.DataFrame(leaderboard).sort_values("Punkty", ascending=False))
 
 with tab3:
-    def draw_match(k):
+    for k in ALL_SERIES_KEYS:
         t1, t2, s1, s2 = BRACKET[k]
         u_pick = st.session_state.db.get(st.session_state.logged_user, {}).get(k, "-") if st.session_state.logged_user else "-"
         a_res = actual_res_db.get(k, "W toku")
-        pts, css_b, css_p = get_points_logic(u_pick, a_res)
+        pts, css_p = get_points_logic(u_pick, a_res)
         
         st.markdown(f"""
-        <div class="match-box {css_b}">
-            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS['TBD'])}" width="30"></div> <b>({s1}) {t1}</b></div>
-            <div style="text-align: center; margin: 5px 0; font-size: 0.8em; color: #888;">{a_res if a_res != "W toku" else "W toku"} | Typ: {u_pick} <span class="pts-badge {css_p}">+{pts}</span></div>
-            <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS['TBD'])}" width="30"></div> <b>({s2}) {t2}</b></div>
+        <div class="match-card">
+            <b>{t1} ({s1}) vs {t2} ({s2})</b><br>
+            Oficjalnie: {a_res} | Twój typ: {u_pick} <span class="pts-badge {css_p}">+{pts} pkt</span>
         </div>
         """, unsafe_allow_html=True)
-
-    st.markdown('<div class="round-header">ZACHÓD</div>', unsafe_allow_html=True)
-    for k in ["W1", "W2", "W3", "W4"]: draw_match(k)
-    st.markdown('<div class="round-header">WSCHÓD</div>', unsafe_allow_html=True)
-    for k in ["E1", "E2", "E3", "E4"]: draw_match(k)
-    st.markdown('<div class="round-header">PÓŁFINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
-    for k in ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]: draw_match(k)
-    st.markdown('<div class="round-header">FINAŁY KONFERENCJI</div>', unsafe_allow_html=True)
-    for k in ["W_CF", "E_CF"]: draw_match(k)
-    st.markdown('<div class="round-header">FINAŁ NBA</div>', unsafe_allow_html=True)
-    draw_match("FINALS")
 
 with tab4:
     admin_auth = st.text_input("Kod Admina:", type="password")
     if admin_auth == ADMIN_PIN:
-        st.write("Wpisz wyniki (np. 4-2 lub 1-4):")
         new_results = {}
         for k in ALL_SERIES_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
