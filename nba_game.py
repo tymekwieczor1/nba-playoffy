@@ -51,13 +51,13 @@ def save_data(data, filename):
     pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
 def get_points_logic(user_pick, actual_result):
-    if actual_result == "W toku" or user_pick == "-" or pd.isna(actual_result): 
+    if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
         return 0, "", "pts-normal"
-    if user_pick == actual_result: 
+    if str(user_pick) == str(actual_result): 
         return 5, "res-exact", "pts-exact"
     try:
-        u_left_wins = int(user_pick.split("-")[0]) == 4
-        a_left_wins = int(actual_result.split("-")[0]) == 4
+        u_left_wins = int(str(user_pick).split("-")[0]) == 4
+        a_left_wins = int(str(actual_result).split("-")[0]) == 4
         if u_left_wins == a_left_wins: 
             return 3, "res-winner", "pts-winner"
     except: pass
@@ -65,9 +65,9 @@ def get_points_logic(user_pick, actual_result):
 
 def get_winner(match_key, results, teams):
     res = results.get("OFFICIAL", {}).get(match_key, "W toku")
-    if res == "W toku": return "TBD"
+    if pd.isna(res) or res == "W toku": return "TBD"
     try:
-        s = res.split("-")
+        s = str(res).split("-")
         if int(s[0]) == 4: return teams[0]
         if int(s[1]) == 4: return teams[1]
     except: pass
@@ -226,7 +226,6 @@ with tab1:
         if user:
             pwd = st.text_input("Hasło (6 cyfr):", type="password", key=f"login_{user}")
             if st.button("Wejdź"):
-                # Sprawdzanie hasła ze stałą listą zdefiniowaną na górze pliku
                 if pwd == PLAYER_PINS.get(user):
                     st.session_state.logged_user = user
                     user_data = st.session_state.db.get(user, {})
@@ -251,10 +250,7 @@ with tab1:
         ]
 
         for stage_name, keys in STAGE_GROUPS:
-            # Filtrowanie tylko tych kluczy, w których ZNANE są obie drużyny
             valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
-            
-            # Jeśli w tym etapie nie ma jeszcze żadnego znanego meczu, w ogóle go nie wyświetlamy
             if not valid_keys:
                 continue
 
@@ -262,7 +258,13 @@ with tab1:
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
+                
+                # --- ZABEZPIECZENIE PRZED BŁĘDEM ATTRIBUTEERROR ---
                 current_val = st.session_state.temp_picks.get(k, "4-0")
+                if pd.isna(current_val) or not isinstance(current_val, str) or "-" not in str(current_val):
+                    current_val = "4-0"
+                # ----------------------------------------------------
+                
                 left_wins = int(current_val.split("-")[0]) == 4
                 num_games = sum(map(int, current_val.split("-")))
 
@@ -362,7 +364,6 @@ with tab3:
     ]
 
     for stage_name, keys in STAGE_GROUPS_BRACKET:
-        # Pokaż nagłówek tylko, jeśli jest chociaż jeden gotowy mecz w danym etapie
         valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
         if valid_keys:
             st.markdown(f'<div class="round-header">{stage_name}</div>', unsafe_allow_html=True)
@@ -378,8 +379,6 @@ with tab4:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             curr = actual_res_db.get(k, "W toku")
             
-            # Ukrywamy pole wyboru dla meczów, w których brakuje drużyn, 
-            # ale jednocześnie musimy przepisać starą (lub domyślną) wartość
             if t1 == "TBD" or t2 == "TBD":
                 new_results[k] = curr
                 continue
