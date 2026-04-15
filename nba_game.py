@@ -35,8 +35,16 @@ SERIES = [
 
 st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="wide")
 
+# Stylizacja ramki logowania i meczów
 st.markdown("""
     <style>
+    .login-box {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #555;
+        margin-bottom: 25px;
+    }
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(255, 255, 255, 0.05); }
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     </style>
@@ -44,9 +52,7 @@ st.markdown("""
 
 def load_data():
     if os.path.exists("wyniki.csv"):
-        try: 
-            # KLUCZOWA ZMIANA: Wymuszamy wczytywanie kolumny PIN jako tekst (str)
-            return pd.read_csv("wyniki.csv", index_col=0, dtype={'PIN': str}).to_dict('index')
+        try: return pd.read_csv("wyniki.csv", index_col=0, dtype={'PIN': str}).to_dict('index')
         except: return {}
     return {}
 
@@ -66,52 +72,69 @@ is_locked = now > START_TIME
 tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka Playoff", "⚙️ Admin"])
 
 with tab1:
-    user = st.selectbox("Wybierz swoje imię:", [""] + PLAYERS)
-    if user:
-        user_data = st.session_state.db.get(user, {})
-        # Zabezpieczenie: konwertujemy na string i usuwamy .0 jeśli pandas dodał to do liczb
-        saved_pwd = str(user_data.get("PIN", ""))
-        if saved_pwd.endswith(".0"): saved_pwd = saved_pwd[:-2]
-
-        if saved_pwd == "" or saved_pwd == "nan":
-            st.warning(f"Cześć {user}! Nie masz jeszcze ustalonego hasła.")
-            new_pwd = st.text_input("Ustal swoje hasło dostępu:", type="password", key=f"setup_{user}")
-            if st.button("Zapisz moje hasło"):
-                if len(new_pwd) >= 3:
-                    user_data["PIN"] = str(new_pwd) # Zapisujemy jako string
-                    st.session_state.db[user] = user_data
-                    save_data(st.session_state.db)
-                    st.success("Hasło zapisane! Odśwież stronę (F5) i zaloguj się.")
-                    st.rerun()
-                else:
-                    st.error("Hasło musi mieć minimum 3 znaki.")
-        else:
-            pwd_input = st.text_input(f"Podaj hasło dla {user}:", type="password", key=f"login_{user}")
+    # --- KAFELEK LOGOWANIA ---
+    if st.session_state.logged_user is None:
+        with st.container():
+            st.markdown('<div class="login-box">', unsafe_allow_html=True)
+            st.subheader("🔐 Zaloguj się, aby typować")
+            col_u, col_p = st.columns(2)
             
-            if pwd_input == saved_pwd:
-                st.session_state.logged_user = user
-                st.success(f"Zalogowano jako {user}")
-                
-                new_picks = {}
-                options = ["4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
-                cols = st.columns(2)
-                for i, match in enumerate(SERIES):
-                    col = cols[i % 2]
-                    default_val = user_data.get(match, "4-0")
-                    idx = options.index(default_val) if default_val in options else 0
-                    pick = col.selectbox(f"{match}", options, key=f"in_{user}_{match}", index=idx, disabled=is_locked)
-                    new_picks[match] = pick
-                
-                if st.button("Zapisz moje typy", disabled=is_locked, use_container_width=True):
-                    new_picks["PIN"] = saved_pwd
-                    st.session_state.db[user] = new_picks
-                    save_data(st.session_state.db)
-                    st.success("✅ Typy zapisane!")
-            elif pwd_input != "":
-                # Dodatkowa podpowiedź dla Admina w razie problemów
-                st.error("Błędne hasło!")
+            with col_u:
+                user = st.selectbox("Wybierz gracza:", [""] + PLAYERS, key="login_select")
+            
+            if user:
+                user_data = st.session_state.db.get(user, {})
+                saved_pwd = str(user_data.get("PIN", ""))
+                if saved_pwd.endswith(".0"): saved_pwd = saved_pwd[:-2]
 
-# ... (reszta kodu tab2, tab3, tab4 pozostaje bez zmian)
+                with col_p:
+                    if saved_pwd == "" or saved_pwd == "nan":
+                        new_pwd = st.text_input("Ustal hasło:", type="password", key=f"setup_{user}")
+                        if st.button("Ustaw hasło i wejdź"):
+                            if len(new_pwd) >= 3:
+                                user_data["PIN"] = str(new_pwd)
+                                st.session_state.db[user] = user_data
+                                save_data(st.session_state.db)
+                                st.session_state.logged_user = user
+                                st.rerun()
+                    else:
+                        pwd_input = st.text_input("Wpisz hasło:", type="password", key=f"login_{user}")
+                        if st.button("Zaloguj"):
+                            if pwd_input == saved_pwd:
+                                st.session_state.logged_user = user
+                                st.rerun()
+                            else:
+                                st.error("Błędne hasło!")
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # --- WIDOK PO ZALOGOWANIU ---
+        st.success(f"Zalogowano jako **{st.session_state.logged_user}**")
+        if st.button("Wyloguj"):
+            st.session_state.logged_user = None
+            st.rerun()
+        
+        st.markdown("---")
+        
+        user_data = st.session_state.db.get(st.session_state.logged_user, {})
+        new_picks = {}
+        options = ["4-0", "4-1", "4-2", "4-3", "3-4", "2-4", "1-4", "0-4"]
+        
+        cols = st.columns(2)
+        for i, match in enumerate(SERIES):
+            col = cols[i % 2]
+            default_val = user_data.get(match, "4-0")
+            idx = options.index(default_val) if default_val in options else 0
+            pick = col.selectbox(f"{match}", options, key=f"in_{st.session_state.logged_user}_{match}", index=idx, disabled=is_locked)
+            new_picks[match] = pick
+        
+        if st.button("Zapisz wszystkie typy", disabled=is_locked, use_container_width=True):
+            # Zachowujemy hasło przy zapisie!
+            new_picks["PIN"] = user_data.get("PIN")
+            st.session_state.db[st.session_state.logged_user] = new_picks
+            save_data(st.session_state.db)
+            st.balloons()
+            st.success("✅ Typy zostały zapisane na serwerze!")
+
 with tab2:
     st.subheader("Tabela Wyników")
     if not st.session_state.db:
@@ -129,10 +152,13 @@ with tab2:
 
 with tab3:
     st.subheader("Drabinka Playoff")
-    user_picks = st.session_state.db.get(st.session_state.logged_user, {}) if st.session_state.logged_user else {}
+    # Pobieramy typy zalogowanego użytkownika dla drabinki
+    curr_user = st.session_state.logged_user
+    u_picks = st.session_state.db.get(curr_user, {}) if curr_user else {}
+    
     def bracket_card(t1, seed1, t2, seed2):
         match_key = f"{t1} vs {t2}"
-        my_pick = user_picks.get(match_key, "-")
+        my_pick = u_picks.get(match_key, "-")
         st.markdown(f"""
         <div class="match-box">
             <div style="display: flex; align-items: center;"><div class="logo-bg"><img src="{LOGOS[t1]}" width="35"></div><span style="margin-left: 10px; font-weight: bold;">({seed1}) {t1}</span></div>
