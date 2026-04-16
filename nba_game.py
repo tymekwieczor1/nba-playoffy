@@ -7,6 +7,7 @@ import os
 START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
 now = datetime.now()
+is_global_locked = now > START_TIME
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
@@ -36,6 +37,21 @@ LOGOS = {
     "7 Seed": "https://via.placeholder.com/150/ffffff/000000?text=7+SEED",
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
+
+ODDS = {
+    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
+    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
+    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
+    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
+}
+
+STAGE_GROUPS = [
+    ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
+    ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
+    ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
+    ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
+    ("FINAŁ NBA", ["FINALS"])
+]
 
 # --- 2. FUNKCJE ---
 def load_data(filename):
@@ -136,7 +152,7 @@ st.markdown("""
         position: sticky; top: 40px; z-index: 999;
         background-color: #0e1117; padding: 10px 0 15px 0; border-bottom: 2px solid #333;
     }
-    button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 26px !important; font-weight: bold !important; }
+    button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 20px !important; font-weight: bold !important; }
     button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
     .match-card { margin-bottom: 20px; }
     
@@ -196,7 +212,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["🖋️ Twoje Typy", "🏆 Ranking", "📊 Drabinka", "⚙️ Admin"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🖋️ Twoje Typy", "👀 Typy Innych", "🏆 Ranking", "📊 Drabinka", "⚙️ Admin"])
 
 # --- TYPY ---
 with tab1:
@@ -213,8 +229,6 @@ with tab1:
         if st.button("Wyloguj"):
             st.session_state.logged_user = None
             st.rerun()
-        
-        is_global_locked = now > START_TIME
 
         user_saved_data = st.session_state.db.get(st.session_state.logged_user, {})
         placed_picks = sum(1 for k in ALL_KEYS if user_saved_data.get(k, "-") != "-")
@@ -228,14 +242,6 @@ with tab1:
             <span style="font-size: 1.1em; font-weight: bold; color: #ff4b4b;">🔥 Wykorzystane Hot Take'i: {hot_takes_used} / 2</span>
         </div>
         """, unsafe_allow_html=True)
-
-        STAGE_GROUPS = [
-            ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
-            ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
-            ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
-            ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
-            ("FINAŁ NBA", ["FINALS"])
-        ]
 
         for stage_name, keys in STAGE_GROUPS:
             valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
@@ -294,7 +300,6 @@ with tab1:
                 odd_t1 = clean_odd(odds_db.get(f"{k}_T1", "-"))
                 odd_t2 = clean_odd(odds_db.get(f"{k}_T2", "-"))
                 
-                # Generowanie odznaki Underdog
                 ud_badge_t1 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t1) else ''
                 ud_badge_t2 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t2) else ''
 
@@ -346,10 +351,8 @@ with tab1:
                                     st.session_state.temp_picks[k] = new_v
                                     st.rerun()
 
-                # --- KALKULACJA POTENCJALNYCH PUNKTÓW Z UWZGLĘDNIENIEM UNDERDOGA ---
                 mult = MULTIPLIERS[k]
                 is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
-                
                 pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
                 pot_exact = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
                 
@@ -402,8 +405,36 @@ with tab1:
             st.success("Wszystko zapisane!")
             st.rerun()
 
-# --- RANKING ---
+# --- TYPY INNYCH ---
 with tab2:
+    st.subheader("👀 Typy pozostałych graczy")
+    
+    if not is_global_locked:
+        st.info(f"🔒 Typy innych graczy zostaną odblokowane po upływie czasu na typowanie ({START_TIME.strftime('%d.%m.%Y o %H:%M')}).")
+    else:
+        st.markdown("Poniżej widzisz wszystkie zapisane typy graczy. Zobacz kto najbardziej zaryzykował!")
+        
+        summary_data = []
+        for stage_name, keys in STAGE_GROUPS:
+            valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
+            for k in valid_keys:
+                t1, t2 = BRACKET[k][0], BRACKET[k][1]
+                row = {"Mecz": f"{t1} vs {t2}"}
+                for p in PLAYERS:
+                    p_data = st.session_state.db.get(p, {})
+                    pick = p_data.get(k, "-")
+                    is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
+                    row[p] = f"{pick} 🔥" if is_hot and pick != "-" else pick
+                summary_data.append(row)
+        
+        if summary_data:
+            df_summary = pd.DataFrame(summary_data).set_index("Mecz")
+            st.dataframe(df_summary, use_container_width=True)
+        else:
+            st.write("Brak dostępnych meczów do wyświetlenia.")
+
+# --- RANKING ---
+with tab3:
     st.subheader("Ranking")
     leaderboard = []
     for p in PLAYERS:
@@ -423,7 +454,7 @@ with tab2:
     st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
 # --- DRABINKA ---
-with tab3:
+with tab4:
     def draw_bracket_card(k):
         t1, t2, s1, s2 = BRACKET[k]
         u_data = st.session_state.db.get(st.session_state.logged_user, {})
@@ -438,15 +469,14 @@ with tab3:
         pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot, is_ud)
         st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot and u_pick!="-" else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
 
-    STAGE_GROUPS_BRACKET = [("ZACHÓD", ["W1", "W2", "W3", "W4"]), ("WSCHÓD", ["E1", "E2", "E3", "E4"]), ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]), ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]), ("FINAŁ NBA", ["FINALS"])]
-    for stage_name, keys in STAGE_GROUPS_BRACKET:
+    for stage_name, keys in STAGE_GROUPS:
         valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
         if valid_keys:
             st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             for k in valid_keys: draw_bracket_card(k)
 
 # --- ADMIN ---
-with tab4:
+with tab5:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
         new_results = {}
