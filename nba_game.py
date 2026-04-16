@@ -305,7 +305,7 @@ with tab1:
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Seria zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
                     <style>
