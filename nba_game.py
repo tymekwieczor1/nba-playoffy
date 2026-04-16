@@ -134,41 +134,47 @@ st.markdown("""
     button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
     .match-card { margin-bottom: 20px; }
     
+    /* --- KONTENER DRUŻYNY --- */
     .team-box {
         border-radius: 15px; padding: 15px; text-align: center; border: 2px solid #444;
-        background: rgba(255,255,255,0.02); transition: 0.3s; height: 160px; 
+        background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; /* Zwiększona wysokość pod większe loga */
         display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .team-box img { margin-bottom: 10px; max-height: 60px; object-fit: contain; }
-    div.element-container:has(.team-box) + div.element-container { margin-top: -160px; position: relative; z-index: 10; }
-    div.element-container:has(.team-box) + div.element-container button { height: 160px; opacity: 0 !important; cursor: pointer; }
+    .team-box img { margin-bottom: 10px; max-height: 90px; object-fit: contain; } /* LOGA POWIĘKSZONE Z 60px na 90px */
+    div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
+    div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
     /* --- OKRĄGŁE PRZYCISKI LICZBY MECZÓW (STYL NBA) --- */
     .game-btn {
         border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5em;
-        font-weight: bold;
-        margin: 0 auto;
-        border: 2px solid #444;
-        transition: 0.3s;
+        width: 60px; height: 60px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5em; font-weight: bold; margin: 0 auto;
+        border: 2px solid #444; transition: 0.3s;
     }
-    .game-btn-selected {
-        border-color: #0099ff;
-        background-color: rgba(0, 153, 255, 0.2);
-        color: #0099ff;
-        box-shadow: 0 0 12px rgba(0, 153, 255, 0.4);
-    }
+    .game-btn-selected { border-color: #0099ff; background-color: rgba(0, 153, 255, 0.2); color: #0099ff; box-shadow: 0 0 12px rgba(0, 153, 255, 0.4); }
     .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
     .game-btn-disabled { opacity: 0.3; border-color: #333; }
-    
     div.element-container:has(.game-btn) + div.element-container { margin-top: -60px; position: relative; z-index: 10; }
     div.element-container:has(.game-btn) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
 
+    /* --- WYMUSZENIE POZIOMEGO UKŁADU NA TELEFONIE --- */
+    div[data-testid="stHorizontalBlock"]:has(.game-btn) {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.game-btn) > div[data-testid="column"] {
+        min-width: 0 !important; width: 25% !important; flex: 1 1 25% !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.team-box) {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.team-box) > div[data-testid="column"] {
+        min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
+    }
 
     .hot-box {
         border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
@@ -186,24 +192,14 @@ st.markdown("""
     .stButton > button:hover { border-color: #0099ff !important; color: #0099ff !important; }
 
     .clear-btn-col .stButton > button { 
-        border-color: #ff4b4b !important; 
-        color: #ff4b4b !important; 
-        background-color: rgba(255, 75, 75, 0.1) !important;
-        font-size: 1.1em !important;
-        padding: 10px !important;
-        min-height: 55px !important;
-        margin-top: 5px;
+        border-color: #ff4b4b !important; color: #ff4b4b !important; background-color: rgba(255, 75, 75, 0.1) !important;
+        font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px;
     }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
     
     .save-btn-col .stButton > button { 
-        border-color: #28a745 !important; 
-        color: #28a745 !important; 
-        background-color: rgba(40, 167, 69, 0.1) !important;
-        font-size: 1.1em !important;
-        padding: 10px !important;
-        min-height: 55px !important;
-        margin-top: 5px;
+        border-color: #28a745 !important; color: #28a745 !important; background-color: rgba(40, 167, 69, 0.1) !important;
+        font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px;
     }
     .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
 
@@ -316,7 +312,6 @@ with tab1:
                         if not is_hot: st.toast("🔥 HOT TAKE AKTYWOWANY! 🔥")
                         st.rerun()
 
-                    # ZAMIAST SELECTBOXA: OKRĄGŁE PRZYCISKI
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
                     g_cols = st.columns(4)
                     for idx, g in enumerate([4, 5, 6, 7]):
@@ -334,8 +329,10 @@ with tab1:
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
-                    if current_val == "-": st.markdown(f'<p style="margin-top:20px; font-size: 1.2em; color:#ff4b4b;"><b>BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
-                    else: st.markdown(f'<p style="margin-top:20px; font-size: 1.2em; color:#0099ff;"><b>{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
+                    if current_val == "-": 
+                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <b style="color:#ff4b4b;">BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
+                    else: 
+                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <b style="color:#0099ff;">{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
