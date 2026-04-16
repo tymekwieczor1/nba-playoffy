@@ -4,9 +4,10 @@ from datetime import datetime
 import os
 
 # --- 1. KONFIGURACJA ---
+START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
 now = datetime.now()
-now_str = now.strftime("%Y-%m-%d %H:%M") # Aktualny czas w formacie tekstowym do porównań
+now_str = now.strftime("%Y-%m-%d %H:%M")
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
@@ -286,7 +287,6 @@ with tab1:
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
-                # Wyświetlanie daty meczu pod tytułem
                 st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
@@ -507,17 +507,31 @@ with tab5:
                 continue
                 
             st.markdown(f"**{t1} vs {t2}**")
-            c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1.5])
+            
+            # Górny rząd: Wynik i Kursy
+            c1, c2, c3 = st.columns(3)
             with c1:
                 opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
-                new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}", label_visibility="collapsed")
+                new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}")
             with c2:
-                new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}", placeholder=f"Kurs {t1}")
+                new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}", placeholder="Kurs")
             with c3:
-                new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder=f"Kurs {t2}")
-            with c4:
-                new_times[k] = st.text_input("Start", value=curr_time, key=f"adm_time_{k}")
+                new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder="Kurs")
+            
+            # Dolny rząd: Przyjazna Data i Czas
+            c4, c5 = st.columns(2)
+            try:
+                dt_obj = datetime.strptime(curr_time, "%Y-%m-%d %H:%M")
+            except:
+                dt_obj = datetime(2026, 4, 18, 19, 0)
                 
+            with c4:
+                d = st.date_input("Data zamknięcia", value=dt_obj.date(), key=f"adm_d_{k}")
+            with c5:
+                t = st.time_input("Godzina zamknięcia", value=dt_obj.time(), key=f"adm_t_{k}")
+                
+            new_times[k] = f"{d.strftime('%Y-%m-%d')} {t.strftime('%H:%M')}"
+            
             st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
             
         if st.button("Zatwierdź Zmiany", use_container_width=True):
@@ -527,5 +541,5 @@ with tab5:
             fresh_res["START_TIMES"] = new_times
             save_data(fresh_res, "oficjalne_wyniki.csv")
             st.session_state.results = fresh_res
-            st.success("Zapisano zmiany!")
+            st.success("Zapisano wszystkie zmiany!")
             st.rerun()
