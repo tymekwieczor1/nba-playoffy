@@ -4,10 +4,9 @@ from datetime import datetime
 import os
 
 # --- 1. KONFIGURACJA ---
-START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
 now = datetime.now()
-is_global_locked = now > START_TIME
+now_str = now.strftime("%Y-%m-%d %H:%M") # Aktualny czas w formacie tekstowym do porównań
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
@@ -45,14 +44,6 @@ ODDS = {
     "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
 }
 
-STAGE_GROUPS = [
-    ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
-    ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
-    ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
-    ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
-    ("FINAŁ NBA", ["FINALS"])
-]
-
 # --- 2. FUNKCJE ---
 def load_data(filename):
     if os.path.exists(filename):
@@ -88,12 +79,12 @@ def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False
         if str(user_pick) == str(actual_result): 
             pts = 5 * multiplier
             if is_hot_take: pts += 5  
-            if is_underdog_pick: pts += 3  # +1 za zwycięzcę, +2 za wynik 
+            if is_underdog_pick: pts += 3  
             return pts, "res-exact", "pts-exact"
         elif u_left_wins == a_left_wins: 
             pts = 3 * multiplier
             if is_hot_take: pts += 2  
-            if is_underdog_pick: pts += 1  # +1 za zwycięzcę
+            if is_underdog_pick: pts += 1  
             return pts, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
@@ -124,6 +115,7 @@ if 'temp_picks' not in st.session_state: st.session_state.temp_picks = {}
 
 actual_res_db = st.session_state.results.get("OFFICIAL", {})
 odds_db = st.session_state.results.get("ODDS", {})
+times_db = st.session_state.results.get("START_TIMES", {})
 
 R1_MAP = {
     "W1": ["Thunder", "8 Seed", "1", "8"], "W2": ["Lakers", "Rockets", "4", "5"],
@@ -214,6 +206,14 @@ st.markdown("""
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["🖋️ Twoje Typy", "👀 Typy Innych", "🏆 Ranking", "📊 Drabinka", "⚙️ Admin"])
 
+STAGE_GROUPS = [
+    ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
+    ("PIERWSZA RUNDA - WSCHÓD", ["E1", "E2", "E3", "E4"]),
+    ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]),
+    ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]),
+    ("FINAŁ NBA", ["FINALS"])
+]
+
 # --- TYPY ---
 with tab1:
     if st.session_state.logged_user is None:
@@ -273,15 +273,21 @@ with tab1:
                         left_selected = False
                         right_selected = False
                 
+                match_start_time = times_db.get(k, "2026-04-18 19:00")
+                is_time_locked = now_str >= match_start_time
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
-                match_locked = is_global_locked or is_match_result_known
+                match_locked = is_time_locked or is_match_result_known
+                
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
                 hot_disabled = match_locked or current_val == "-" or (not is_hot and hot_takes_used >= 2)
                 options_disabled = match_locked or current_val == "-"
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
-                st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
+                st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
+                
+                # Wyświetlanie daty meczu pod tytułem
+                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
                     <style>
@@ -396,7 +402,7 @@ with tab1:
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("ZAPISZ WSZYSTKO", use_container_width=True, disabled=is_global_locked):
+        if st.button("ZAPISZ WSZYSTKO", use_container_width=True):
             fresh_db = load_data("wyniki.csv")
             fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
             save_data(fresh_db, "wyniki.csv")
@@ -408,30 +414,32 @@ with tab1:
 # --- TYPY INNYCH ---
 with tab2:
     st.subheader("👀 Typy pozostałych graczy")
+    st.markdown("Typy dla każdego meczu są ukryte do momentu wygaśnięcia czasu na jego typowanie.")
     
-    if not is_global_locked:
-        st.info(f"🔒 Typy innych graczy zostaną odblokowane po upływie czasu na typowanie ({START_TIME.strftime('%d.%m.%Y o %H:%M')}).")
-    else:
-        st.markdown("Poniżej widzisz wszystkie zapisane typy graczy. Zobacz kto najbardziej zaryzykował!")
-        
-        summary_data = []
-        for stage_name, keys in STAGE_GROUPS:
-            valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
-            for k in valid_keys:
-                t1, t2 = BRACKET[k][0], BRACKET[k][1]
-                row = {"Mecz": f"{t1} vs {t2}"}
-                for p in PLAYERS:
+    summary_data = []
+    for stage_name, keys in STAGE_GROUPS:
+        valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
+        for k in valid_keys:
+            t1, t2 = BRACKET[k][0], BRACKET[k][1]
+            match_start_time = times_db.get(k, "2026-04-18 19:00")
+            is_time_locked = now_str >= match_start_time
+            
+            row = {"Mecz": f"{t1} vs {t2}"}
+            for p in PLAYERS:
+                if is_time_locked:
                     p_data = st.session_state.db.get(p, {})
                     pick = p_data.get(k, "-")
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
                     row[p] = f"{pick} 🔥" if is_hot and pick != "-" else pick
-                summary_data.append(row)
-        
-        if summary_data:
-            df_summary = pd.DataFrame(summary_data).set_index("Mecz")
-            st.dataframe(df_summary, use_container_width=True)
-        else:
-            st.write("Brak dostępnych meczów do wyświetlenia.")
+                else:
+                    row[p] = "🔒"
+            summary_data.append(row)
+    
+    if summary_data:
+        df_summary = pd.DataFrame(summary_data).set_index("Mecz")
+        st.dataframe(df_summary, use_container_width=True)
+    else:
+        st.write("Brak dostępnych meczów do wyświetlenia.")
 
 # --- RANKING ---
 with tab3:
@@ -481,22 +489,25 @@ with tab5:
     if admin_auth == ADMIN_PIN:
         new_results = {}
         new_odds = {}
+        new_times = {}
         
-        st.markdown("### Wprowadzanie Wyników i Kursów")
+        st.markdown("### Wprowadzanie Wyników, Kursów i Czasu")
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             curr_res = actual_res_db.get(k, "W toku")
             curr_odd_t1 = clean_odd(odds_db.get(f"{k}_T1", ""))
             curr_odd_t2 = clean_odd(odds_db.get(f"{k}_T2", ""))
+            curr_time = times_db.get(k, "2026-04-18 19:00")
             
             if t1 == "TBD" or t2 == "TBD":
                 new_results[k] = curr_res
                 new_odds[f"{k}_T1"] = curr_odd_t1
                 new_odds[f"{k}_T2"] = curr_odd_t2
+                new_times[k] = curr_time
                 continue
                 
             st.markdown(f"**{t1} vs {t2}**")
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1.5])
             with c1:
                 opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
                 new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}", label_visibility="collapsed")
@@ -504,12 +515,16 @@ with tab5:
                 new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}", placeholder=f"Kurs {t1}")
             with c3:
                 new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder=f"Kurs {t2}")
+            with c4:
+                new_times[k] = st.text_input("Start", value=curr_time, key=f"adm_time_{k}")
+                
             st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
             
-        if st.button("Zatwierdź Wyniki i Kursy", use_container_width=True):
+        if st.button("Zatwierdź Zmiany", use_container_width=True):
             fresh_res = load_data("oficjalne_wyniki.csv")
             fresh_res["OFFICIAL"] = new_results
             fresh_res["ODDS"] = new_odds
+            fresh_res["START_TIMES"] = new_times
             save_data(fresh_res, "oficjalne_wyniki.csv")
             st.session_state.results = fresh_res
             st.success("Zapisano zmiany!")
