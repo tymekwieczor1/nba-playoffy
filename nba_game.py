@@ -136,28 +136,55 @@ st.markdown("""
     
     .match-card { margin-bottom: 20px; }
     
-    /* --- BEZPIECZNE UKŁADY PRZYCISKÓW --- */
+    /* --- DRUŻYNY W JEDNYM RZĘDZIE (KOMPAKTOWE) --- */
+    .team-row-start + div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        gap: 8px !important; /* Mniejszy odstęp by zmieścić na wąskich ekranach */
+    }
+    .team-row-start + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 48% !important; flex: 1 1 48% !important; min-width: 0 !important;
+    }
+    
     .team-box {
-        border-radius: 15px; padding: 15px; text-align: center; border: 2px solid #444;
+        border-radius: 12px; padding: 10px 4px; text-align: center; border: 2px solid #444;
         background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; 
         display: flex; flex-direction: column; align-items: center; justify-content: center;
+        overflow: hidden; /* Zapobiega rozpychaniu przez długie nazwy */
     }
-    .team-box img { margin-bottom: 10px; max-height: 90px; object-fit: contain; }
+    .team-box img { margin-bottom: 8px; max-height: 80px; max-width: 100%; object-fit: contain; }
+    
     div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
+    /* --- KÓŁKA GIER (ZMNIEJSZONE I ZBITE) --- */
+    .game-row-start + div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        gap: 10px !important; /* Bardzo ciasno */
+    }
+    .game-row-start + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 50px !important; flex: 0 1 50px !important; min-width: 0 !important;
+    }
+    
     .game-btn {
-        border-radius: 50%; width: 60px; height: 60px;
+        border-radius: 50%; width: 50px; height: 50px; /* Zmniejszone kółka z 60 na 50 */
         display: flex; align-items: center; justify-content: center;
-        font-size: 1.5em; font-weight: bold; margin: 0 auto;
+        font-size: 1.3em; font-weight: bold; margin: 0 auto;
         border: 2px solid #444; transition: 0.3s;
     }
     .game-btn-selected { border-color: #0099ff; background-color: rgba(0, 153, 255, 0.2); color: #0099ff; box-shadow: 0 0 12px rgba(0, 153, 255, 0.4); }
     .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
     .game-btn-disabled { opacity: 0.3; border-color: #333; }
-    div.element-container:has(.game-btn) + div.element-container { margin-top: -60px; position: relative; z-index: 10; }
-    div.element-container:has(.game-btn) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
+    
+    div.element-container:has(.game-btn) + div.element-container { margin-top: -50px; position: relative; z-index: 10; }
+    div.element-container:has(.game-btn) + div.element-container button { height: 50px; opacity: 0 !important; cursor: pointer; padding: 0 !important; margin: 0 !important; }
 
+    /* --- HOT TAKE --- */
     .hot-box {
         border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
         background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px; margin: 15px 0;
@@ -166,11 +193,6 @@ st.markdown("""
     .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
     div.element-container:has(.hot-box) + div.element-container { margin-top: -75px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
-
-    /* Wymuszanie braku stackowania na telefonach */
-    div[data-testid="stHorizontalBlock"]:has(.team-box) { flex-wrap: nowrap !important; }
-    div[data-testid="stHorizontalBlock"]:has(.game-btn) { flex-wrap: nowrap !important; gap: 10px !important; justify-content: center !important; }
-    div[data-testid="column"] { min-width: 0 !important; }
 
     /* Zaznaczenia */
     .selected-blue { border: 3px solid #0099ff !important; background: rgba(0, 153, 255, 0.1) !important; box-shadow: 0 0 10px rgba(0, 153, 255, 0.3); }
@@ -248,8 +270,6 @@ with tab1:
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
-                
-                # Zabezpieczony stan początkowy
                 current_val = st.session_state.temp_picks.get(k, "-")
                 left_selected = False
                 right_selected = False
@@ -273,23 +293,24 @@ with tab1:
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
-                # --- KAFELKI DRUŻYN ---
+                # --- KAFELKI DRUŻYN (BEZPIECZNE) ---
+                st.markdown('<div class="team-row-start" style="display:none;"></div>', unsafe_allow_html=True)
                 c1, c2 = st.columns(2)
                 logo_t1, logo_t2 = LOGOS.get(t1, LOGOS["TBD"]), LOGOS.get(t2, LOGOS["TBD"])
                 
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t1,"-")}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t1,"-")}</span></div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t2,"-")}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t2,"-")}</span></div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
-                # --- ROZWIJANA SEKCJA PO WYBORZE DRUŻYNY ---
+                # --- OPCJE PO WYBORZE ---
                 if current_val != "-":
                     st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
                     if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
@@ -299,6 +320,7 @@ with tab1:
 
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
                     
+                    st.markdown('<div class="game-row-start" style="display:none;"></div>', unsafe_allow_html=True)
                     g_cols = st.columns(4)
                     for idx, g in enumerate([4, 5, 6, 7]):
                         with g_cols[idx]:
@@ -313,7 +335,6 @@ with tab1:
                                     st.session_state.temp_picks[k] = new_v
                                     st.rerun()
 
-                # --- PODSUMOWANIE TYPU I ZAPIS ---
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
                     if current_val == "-": 
