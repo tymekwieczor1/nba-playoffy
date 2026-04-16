@@ -32,8 +32,8 @@ LOGOS = {
     "Knicks": "https://loodibee.com/wp-content/uploads/nba-new-york-knicks-logo.png",
     "Hawks": "https://loodibee.com/wp-content/uploads/nba-atlanta-hawks-logo.png",
     "Celtics": "https://loodibee.com/wp-content/uploads/nba-boston-celtics-logo.png",
+    "76ers": "https://loodibee.com/wp-content/uploads/nba-philadelphia-76ers-logo.png",
     "8 Seed": "https://via.placeholder.com/150/ffffff/000000?text=8+SEED",
-    "7 Seed": "https://via.placeholder.com/150/ffffff/000000?text=7+SEED",
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
@@ -134,7 +134,7 @@ R1_MAP = {
     "W1": ["Thunder", "8 Seed", "1", "8"], "W2": ["Lakers", "Rockets", "4", "5"],
     "W3": ["Nuggets", "Timberwolves", "3", "6"], "W4": ["Spurs", "Trail Blazers", "2", "7"],
     "E1": ["Pistons", "8 Seed", "1", "8"], "E2": ["Cavaliers", "Raptors", "4", "5"],
-    "E3": ["Knicks", "Hawks", "3", "6"], "E4": ["Celtics", "7 Seed", "2", "7"]
+    "E3": ["Knicks", "Hawks", "3", "6"], "E4": ["Celtics", "76ers", "2", "7"]
 }
 
 BRACKET = {**R1_MAP}
@@ -192,7 +192,7 @@ st.markdown("""
 
     .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; background-color: rgba(255, 75, 75, 0.1) !important; font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px; }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
-    
+
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     
     /* KOLORY DRABINKI ZGODNE Z PUNKTACJĄ */
@@ -378,6 +378,7 @@ with tab1:
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
+                st.markdown('</div>', unsafe_allow_html=True)
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
 # --- TYPY INNYCH ---
