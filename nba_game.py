@@ -37,11 +37,12 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
-ODDS = {
-    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
-    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
-    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
-    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
+# Mapowanie dla nazw generycznych w tabeli
+GENERIC_MATCH_NAMES = {
+    "W_SF1": "SF WEST 1", "W_SF2": "SF WEST 2",
+    "E_SF1": "SF EAST 1", "E_SF2": "SF EAST 2",
+    "W_CF": "F WEST", "E_CF": "F EAST",
+    "FINALS": "FINALS"
 }
 
 # --- 2. FUNKCJE ---
@@ -160,7 +161,7 @@ st.markdown("""
         background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; 
         display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
     }
-    .team-box img { margin-bottom: 8px; max-height: 70px; max-width: 100%; object-fit: contain; }
+    .team-box img { margin-bottom: 8px; max-height: 80px; max-width: 100%; object-fit: contain; }
     div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
@@ -258,7 +259,6 @@ with tab1:
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
-                
                 current_val = clean_pick(st.session_state.temp_picks.get(k, "-"))
 
                 left_selected = False
@@ -288,25 +288,18 @@ with tab1:
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
-                
                 st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
                     <style>
-                    #team-row-{k} + div[data-testid="stHorizontalBlock"] {{
-                        display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important;
-                    }}
-                    #team-row-{k} + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
-                        width: 50% !important; min-width: 0 !important; flex: 1 1 50% !important;
-                    }}
-                    </style>
-                    <div id="team-row-{k}"></div>
+                    #team-row-{k} + div[data-testid="stHorizontalBlock"] {{ display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; }}
+                    #team-row-{k} + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{ width: 50% !important; min-width: 0 !important; flex: 1 1 50% !important; }}
+                    </style><div id="team-row-{k}"></div>
                 ''', unsafe_allow_html=True)
                 
                 c1, c2 = st.columns(2)
                 logo_t1, logo_t2 = LOGOS.get(t1, LOGOS["TBD"]), LOGOS.get(t2, LOGOS["TBD"])
-                odd_t1 = clean_odd(odds_db.get(f"{k}_T1", "-"))
-                odd_t2 = clean_odd(odds_db.get(f"{k}_T2", "-"))
+                odd_t1, odd_t2 = clean_odd(odds_db.get(f"{k}_T1", "-")), clean_odd(odds_db.get(f"{k}_T2", "-"))
                 
                 ud_badge_t1 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t1) else ''
                 ud_badge_t2 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t2) else ''
@@ -331,18 +324,11 @@ with tab1:
                         st.rerun()
 
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
-                    
                     st.markdown(f'''
                         <style>
-                        #game-row-{k} + div[data-testid="stHorizontalBlock"] {{
-                            display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
-                            justify-content: center !important; gap: 8px !important; width: 100% !important;
-                        }}
-                        #game-row-{k} + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
-                            width: 25% !important; min-width: 0 !important; flex: 1 1 25% !important; display: flex; justify-content: center;
-                        }}
-                        </style>
-                        <div id="game-row-{k}"></div>
+                        #game-row-{k} + div[data-testid="stHorizontalBlock"] {{ display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: center !important; gap: 8px !important; width: 100% !important; }}
+                        #game-row-{k} + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{ width: 25% !important; min-width: 0 !important; flex: 1 1 25% !important; display: flex; justify-content: center; }}
+                        </style><div id="game-row-{k}"></div>
                     ''', unsafe_allow_html=True)
                     
                     g_cols = st.columns(4)
@@ -351,34 +337,23 @@ with tab1:
                             is_sel = (num_games == g)
                             css_btn = "game-btn-selected" if is_sel else "game-btn-unselected"
                             if options_disabled: css_btn += " game-btn-disabled"
-                            
                             st.markdown(f'<div class="game-btn {css_btn}">{g}</div>', unsafe_allow_html=True)
                             if st.button(f"{g}", key=f"bg_{k}_{g}", disabled=options_disabled, use_container_width=True):
                                 new_v = f"4-{g-4}" if left_selected else f"{g-4}-4"
-                                if current_val != new_v: 
-                                    st.session_state.temp_picks[k] = new_v
-                                    st.rerun()
+                                if current_val != new_v: st.session_state.temp_picks[k] = new_v; st.rerun()
 
                 mult = MULTIPLIERS[k]
                 is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
                 pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
                 pot_exact = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
-                
                 pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Wynik {format_score(pot_exact)}</span></div>'
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
-                    if current_val == "-": 
-                        st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span><br>{pot_html}</div>', unsafe_allow_html=True)
+                    if current_val == "-": st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span><br>{pot_html}</div>', unsafe_allow_html=True)
                     else: 
                         parts = current_val.split("-")
-                        if left_selected:
-                            pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{parts[1]} {t2}'
-                        elif right_selected:
-                            pick_text = f'{t1} {parts[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
-                        else:
-                            pick_text = f'{t1} {current_val} {t2}'
-                            
+                        pick_text = f'<b>{t1}</b> <b style="font-size: 1.2em;">4</b>-{parts[1]} {t2}' if left_selected else f'{t1} {parts[0]}-<b style="font-size: 1.2em;">4</b> <b>{t2}</b>'
                         st.markdown(f'<div style="margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
                 
                 with colB:
@@ -386,42 +361,30 @@ with tab1:
                     if st.button("💾 Zapisz", key=f"save_ind_{k}", disabled=match_locked or current_val == "-"):
                         fresh_db = load_data("wyniki.csv")
                         fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-                        save_data(fresh_db, "wyniki.csv")
-                        st.session_state.db = fresh_db
-                        st.toast(f"Zapisano mecz {t1} vs {t2}!")
-                        st.rerun()
+                        save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.toast(f"Zapisano!"); st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 with colC:
                     st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
                     if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
-                        st.session_state.temp_picks[k] = "-"
-                        st.session_state.temp_picks[f"hot_{k}"] = "False"
-                        st.rerun()
+                        st.session_state.temp_picks[k] = "-"; st.session_state.temp_picks[f"hot_{k}"] = "False"; st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-                
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         if st.button("ZAPISZ WSZYSTKO", use_container_width=True):
-            fresh_db = load_data("wyniki.csv")
-            fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-            save_data(fresh_db, "wyniki.csv")
-            st.session_state.db = fresh_db
-            st.balloons()
-            st.success("Wszystko zapisane!")
-            st.rerun()
+            fresh_db = load_data("wyniki.csv"); fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+            save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.balloons(); st.success("Wszystko zapisane!"); st.rerun()
 
 # --- TYPY INNYCH ---
 with tab2:
     st.subheader("👀 Typy pozostałych graczy")
-    st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie danego meczu. **Twoje własne typy są dla Ciebie zawsze widoczne!**")
+    st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie. Twoje typy są widoczne zawsze.")
     
     summary_data = []
     for stage_name, keys in STAGE_GROUPS:
-        valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
-        for k in valid_keys:
+        for k in keys:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             match_start_time = times_db.get(k, "2026-04-18 19:00")
             has_match_started = now_str >= match_start_time
@@ -429,26 +392,25 @@ with tab2:
             actual_res = actual_res_db.get(k, "W toku")
             is_match_finished = actual_res != "W toku" and actual_res != "-"
             
-            odd_t1 = odds_db.get(f"{k}_T1", "-")
-            odd_t2 = odds_db.get(f"{k}_T2", "-")
+            # Ustalanie nazwy wyświetlanej w tabeli (generyczna lub zespoły)
+            if t1 == "TBD" or t2 == "TBD":
+                display_match_name = GENERIC_MATCH_NAMES.get(k, "Mecz")
+            else:
+                display_match_name = f"{t1} vs {t2}"
             
-            row = {"Mecz": f"{t1} vs {t2}"}
+            row = {"Mecz": display_match_name}
             for p in PLAYERS:
                 # Pokazujemy typ jeśli mecz wystartował ALBO to jest kolumna zalogowanego gracza
                 if has_match_started or p == st.session_state.logged_user:
                     p_data = st.session_state.db.get(p, {})
                     pick = clean_pick(p_data.get(k, "-"))
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
-                    
                     display_text = f"{pick} 🔥" if is_hot and pick != "-" else pick
                     
-                    # Jeśli mecz zakończony i gracz miał oddany typ, dopisz zdobyte punkty w nawiasie
                     if is_match_finished and pick != "-":
-                        is_ud = check_pick_underdog(pick, odd_t1, odd_t2)
-                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, is_ud)
-                        pts_str = str(int(pts)) if pts % 1 == 0 else str(round(pts, 1))
-                        display_text += f" ({pts_str} pkt)"
-                        
+                        odd_t1, odd_t2 = odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")
+                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odd_t1, odd_t2))
+                        display_text += f" ({int(pts) if pts % 1 == 0 else round(pts,1)} pkt)"
                     row[p] = display_text
                 else:
                     row[p] = "🔒"
@@ -457,8 +419,6 @@ with tab2:
     if summary_data:
         df_summary = pd.DataFrame(summary_data).set_index("Mecz")
         st.dataframe(df_summary, use_container_width=True)
-    else:
-        st.write("Brak dostępnych meczów do wyświetlenia.")
 
 # --- RANKING ---
 with tab3:
@@ -470,30 +430,20 @@ with tab3:
         for k in ALL_KEYS:
             is_hot = str(p_data.get(f"hot_{k}","False")).lower()=="true"
             u_pick = clean_pick(p_data.get(k, "-"))
-            odd_t1 = odds_db.get(f"{k}_T1", "-")
-            odd_t2 = odds_db.get(f"{k}_T2", "-")
-            is_ud = check_pick_underdog(u_pick, odd_t1, odd_t2)
-            
-            match_pts = get_points_logic(u_pick, actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot, is_ud)[0]
+            match_pts = get_points_logic(u_pick, actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot, check_pick_underdog(u_pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))[0]
             pts += match_pts
-            
         leaderboard.append({"Gracz": p, "Suma": int(pts) if pts % 1 == 0 else round(pts, 1)})
     st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
 # --- DRABINKA ---
 with tab4:
     def draw_bracket_card(k):
-        t1, t2, s1, s2 = BRACKET[k]
+        t1, t2, s1, s2 = BRACKET[k][0], BRACKET[k][1], BRACKET[k][2], BRACKET[k][3]
         u_data = st.session_state.db.get(st.session_state.logged_user, {})
         u_pick = clean_pick(u_data.get(k, "-"))
         is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
         a_res = actual_res_db.get(k, "W toku")
-        
-        odd_t1 = odds_db.get(f"{k}_T1", "-")
-        odd_t2 = odds_db.get(f"{k}_T2", "-")
-        is_ud = check_pick_underdog(u_pick, odd_t1, odd_t2)
-        
-        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot, is_ud)
+        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot, check_pick_underdog(u_pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
         st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot and u_pick!="-" else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
 
     for stage_name, keys in STAGE_GROUPS:
@@ -506,57 +456,31 @@ with tab4:
 with tab5:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
-        new_results = {}
-        new_odds = {}
-        new_times = {}
-        
+        new_results, new_odds, new_times = {}, {}, {}
         st.markdown("### Wprowadzanie Wyników, Kursów i Czasu")
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
-            curr_res = actual_res_db.get(k, "W toku")
-            curr_odd_t1 = clean_odd(odds_db.get(f"{k}_T1", ""))
-            curr_odd_t2 = clean_odd(odds_db.get(f"{k}_T2", ""))
+            curr_res, curr_odd_t1, curr_odd_t2 = actual_res_db.get(k, "W toku"), clean_odd(odds_db.get(f"{k}_T1", "")), clean_odd(odds_db.get(f"{k}_T2", ""))
             curr_time = times_db.get(k, "2026-04-18 19:00")
-            
             if t1 == "TBD" or t2 == "TBD":
-                new_results[k] = curr_res
-                new_odds[f"{k}_T1"] = curr_odd_t1
-                new_odds[f"{k}_T2"] = curr_odd_t2
-                new_times[k] = curr_time
+                new_results[k], new_odds[f"{k}_T1"], new_odds[f"{k}_T2"], new_times[k] = curr_res, curr_odd_t1, curr_odd_t2, curr_time
                 continue
-                
             st.markdown(f"**{t1} vs {t2}**")
-            
             c1, c2, c3 = st.columns(3)
             with c1:
                 opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
                 new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}")
-            with c2:
-                new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}", placeholder="Kurs")
-            with c3:
-                new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder="Kurs")
-            
+            with c2: new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}")
+            with c3: new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}")
             c4, c5 = st.columns(2)
-            try:
-                dt_obj = datetime.strptime(curr_time, "%Y-%m-%d %H:%M")
-            except:
-                dt_obj = datetime(2026, 4, 18, 19, 0)
-                
-            with c4:
-                d = st.date_input("Data zamknięcia", value=dt_obj.date(), key=f"adm_d_{k}")
-            with c5:
-                t = st.time_input("Godzina zamknięcia", value=dt_obj.time(), key=f"adm_t_{k}")
-                
+            try: dt_obj = datetime.strptime(curr_time, "%Y-%m-%d %H:%M")
+            except: dt_obj = datetime(2026, 4, 18, 19, 0)
+            with c4: d = st.date_input("Data zamknięcia", value=dt_obj.date(), key=f"adm_d_{k}")
+            with c5: t = st.time_input("Godzina zamknięcia", value=dt_obj.time(), key=f"adm_t_{k}")
             new_times[k] = f"{d.strftime('%Y-%m-%d')} {t.strftime('%H:%M')}"
-            
             st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
             
         if st.button("Zatwierdź Zmiany", use_container_width=True):
             fresh_res = load_data("oficjalne_wyniki.csv")
-            fresh_res["OFFICIAL"] = new_results
-            fresh_res["ODDS"] = new_odds
-            fresh_res["START_TIMES"] = new_times
-            save_data(fresh_res, "oficjalne_wyniki.csv")
-            st.session_state.results = fresh_res
-            st.success("Zapisano wszystkie zmiany!")
-            st.rerun()
+            fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
+            save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
