@@ -117,6 +117,7 @@ if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
 if 'results' not in st.session_state: st.session_state.results = load_data("oficjalne_wyniki.csv")
 if 'logged_user' not in st.session_state: st.session_state.logged_user = None
 if 'temp_picks' not in st.session_state: st.session_state.temp_picks = {}
+if 'confirm_clear' not in st.session_state: st.session_state.confirm_clear = False
 
 actual_res_db = st.session_state.results.get("OFFICIAL", {})
 odds_db = st.session_state.results.get("ODDS", {})
@@ -390,7 +391,6 @@ with tab2:
     
     if summary_data:
         df_summary = pd.DataFrame(summary_data).set_index("Mecz")
-        # --- STYLIZACJA TABELI (SUBTELNA SZACHOWNICA) ---
         def apply_zebra(df):
             styles = pd.DataFrame('', index=df.index, columns=df.columns)
             for r in range(len(df)):
@@ -430,6 +430,7 @@ with tab5:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
         new_results, new_odds, new_times = {}, {}, {}
+        st.markdown("### Wprowadzanie Wyników, Kursów i Czasu")
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             if t1 == "TBD" or t2 == "TBD":
@@ -447,6 +448,40 @@ with tab5:
             with c5: t = st.time_input("Godzina", value=dt_obj.time(), key=f"adm_t_{k}")
             new_times[k] = f"{d.strftime('%Y-%m-%d')} {t.strftime('%H:%M')}"
             st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+            
         if st.button("Zatwierdź Zmiany", use_container_width=True):
-            fresh_res = load_data("oficjalne_wyniki.csv"); fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
-            save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
+            fresh_res = load_data("oficjalne_wyniki.csv")
+            fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
+            save_data(fresh_res, "oficjalne_wyniki.csv")
+            st.session_state.results = fresh_res
+            st.success("Zapisano!")
+            st.rerun()
+            
+        # --- STREFA NIEBEZPIECZNA ---
+        st.markdown("<hr style='margin: 40px 0 20px 0; border-top: 2px solid #ff4b4b;'>", unsafe_allow_html=True)
+        st.markdown("### 🚨 Strefa Niebezpieczna")
+        
+        if "confirm_clear" not in st.session_state:
+            st.session_state.confirm_clear = False
+            
+        if st.button("🗑️ Wyczyść wszystkie typy graczy", type="primary", use_container_width=True):
+            st.session_state.confirm_clear = True
+            st.rerun()
+            
+        if st.session_state.confirm_clear:
+            st.warning("⚠️ Czy na pewno chcesz trwale usunąć WSZYSTKIE typy WSZYSTKICH graczy? Tej operacji nie można cofnąć!")
+            col_y, col_n = st.columns(2)
+            with col_y:
+                if st.button("Tak, usuń wszystko!", type="primary", use_container_width=True):
+                    # Czyszczenie bazy typów z pliku csv
+                    save_data({}, "wyniki.csv")
+                    # Czyszczenie pamięci sesji
+                    st.session_state.db = {}
+                    st.session_state.temp_picks = {}
+                    st.session_state.confirm_clear = False
+                    st.success("Wszystkie typy zostały trwale usunięte!")
+                    st.rerun()
+            with col_n:
+                if st.button("Anuluj", use_container_width=True):
+                    st.session_state.confirm_clear = False
+                    st.rerun()
