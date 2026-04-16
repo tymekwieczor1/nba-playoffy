@@ -259,7 +259,6 @@ with tab1:
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                # --- BEZPIECZNE POBIERANIE TYPU ---
                 current_val = clean_pick(st.session_state.temp_picks.get(k, "-"))
 
                 left_selected = False
@@ -278,9 +277,9 @@ with tab1:
                         right_selected = False
                 
                 match_start_time = times_db.get(k, "2026-04-18 19:00")
-                is_time_locked = now_str >= match_start_time
+                has_match_started = now_str >= match_start_time
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
-                match_locked = is_time_locked or is_match_result_known
+                match_locked = has_match_started or is_match_result_known
                 
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
@@ -405,7 +404,6 @@ with tab1:
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        # Globalny przycisk zapisu zawsze pod ręką
         if st.button("ZAPISZ WSZYSTKO", use_container_width=True):
             fresh_db = load_data("wyniki.csv")
             fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
@@ -418,7 +416,7 @@ with tab1:
 # --- TYPY INNYCH ---
 with tab2:
     st.subheader("👀 Typy pozostałych graczy")
-    st.markdown("Typy dla każdego meczu są ukryte do momentu wygaśnięcia czasu na jego typowanie.")
+    st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie danego meczu. **Twoje własne typy są dla Ciebie zawsze widoczne!**")
     
     summary_data = []
     for stage_name, keys in STAGE_GROUPS:
@@ -426,15 +424,32 @@ with tab2:
         for k in valid_keys:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             match_start_time = times_db.get(k, "2026-04-18 19:00")
-            is_time_locked = now_str >= match_start_time
+            has_match_started = now_str >= match_start_time
+            
+            actual_res = actual_res_db.get(k, "W toku")
+            is_match_finished = actual_res != "W toku" and actual_res != "-"
+            
+            odd_t1 = odds_db.get(f"{k}_T1", "-")
+            odd_t2 = odds_db.get(f"{k}_T2", "-")
             
             row = {"Mecz": f"{t1} vs {t2}"}
             for p in PLAYERS:
-                if is_time_locked:
+                # Pokazujemy typ jeśli mecz wystartował ALBO to jest kolumna zalogowanego gracza
+                if has_match_started or p == st.session_state.logged_user:
                     p_data = st.session_state.db.get(p, {})
                     pick = clean_pick(p_data.get(k, "-"))
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
-                    row[p] = f"{pick} 🔥" if is_hot and pick != "-" else pick
+                    
+                    display_text = f"{pick} 🔥" if is_hot and pick != "-" else pick
+                    
+                    # Jeśli mecz zakończony i gracz miał oddany typ, dopisz zdobyte punkty w nawiasie
+                    if is_match_finished and pick != "-":
+                        is_ud = check_pick_underdog(pick, odd_t1, odd_t2)
+                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, is_ud)
+                        pts_str = str(int(pts)) if pts % 1 == 0 else str(round(pts, 1))
+                        display_text += f" ({pts_str} pkt)"
+                        
+                    row[p] = display_text
                 else:
                     row[p] = "🔒"
             summary_data.append(row)
