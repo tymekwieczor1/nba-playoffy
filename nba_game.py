@@ -6,7 +6,9 @@ import os
 # --- 1. KONFIGURACJA ---
 START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
-now = datetime.now()
+
+# Wymuszenie polskiej strefy czasowej niezależnie od serwera!
+now = pd.Timestamp.now('Europe/Warsaw')
 now_str = now.strftime("%Y-%m-%d %H:%M")
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
@@ -36,13 +38,6 @@ LOGOS = {
     "8 Seed": "https://via.placeholder.com/150/ffffff/000000?text=8+SEED",
     "7 Seed": "https://via.placeholder.com/150/ffffff/000000?text=7+SEED",
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
-}
-
-ODDS = {
-    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
-    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
-    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
-    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
 }
 
 # --- 2. FUNKCJE ---
@@ -508,7 +503,6 @@ with tab5:
                 
             st.markdown(f"**{t1} vs {t2}**")
             
-            # Górny rząd: Wynik i Kursy
             c1, c2, c3 = st.columns(3)
             with c1:
                 opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
@@ -518,7 +512,6 @@ with tab5:
             with c3:
                 new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder="Kurs")
             
-            # Dolny rząd: Przyjazna Data i Czas
             c4, c5 = st.columns(2)
             try:
                 dt_obj = datetime.strptime(curr_time, "%Y-%m-%d %H:%M")
