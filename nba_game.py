@@ -10,16 +10,6 @@ now = datetime.now()
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
-PLAYER_PINS = {
-    "Tymek": "839201",
-    "Soból": "471029",
-    "Maciek": "593812",
-    "Kowal": "104857",
-    "Paweł": "629403",
-    "Mateusz": "385192",
-    "Tomasz": "740285"
-}
-
 MULTIPLIERS = {
     "W1": 1.0, "W2": 1.0, "W3": 1.0, "W4": 1.0,
     "E1": 1.0, "E2": 1.0, "E3": 1.0, "E4": 1.0,
@@ -153,7 +143,7 @@ st.markdown("""
     .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
     .game-btn-disabled { opacity: 0.3; border-color: #333; }
     
-    div.element-container:has(.game-btn) + div.element-container { margin-top: -50px; position: relative; z-index: 10; }
+    div.element-container:has(.game-btn) + div.element-container { margin-top: -50px; position: relative; z-index: 10; display: flex; justify-content: center; }
     div.element-container:has(.game-btn) + div.element-container button { height: 50px; opacity: 0 !important; cursor: pointer; padding: 0 !important; margin: 0 auto !important; display: block !important; }
 
     .hot-box {
@@ -164,6 +154,8 @@ st.markdown("""
     .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
     div.element-container:has(.hot-box) + div.element-container { margin-top: -75px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
+
+    div[data-testid="column"] { min-width: 0 !important; }
 
     .selected-blue { border: 3px solid #0099ff !important; background: rgba(0, 153, 255, 0.1) !important; box-shadow: 0 0 10px rgba(0, 153, 255, 0.3); }
     .unselected { opacity: 0.5; filter: grayscale(50%); }
@@ -195,14 +187,12 @@ with tab1:
     if st.session_state.logged_user is None:
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
         if user:
-            pwd = st.text_input("Hasło (6 cyfr):", type="password", key=f"login_{user}")
-            if st.button("Wejdź"):
-                if pwd == PLAYER_PINS.get(user):
-                    st.session_state.logged_user = user
-                    user_data = st.session_state.db.get(user, {})
-                    st.session_state.temp_picks = user_data.copy()
-                    st.rerun()
-                else: st.error("Błędne hasło!")
+            # LOGOWANIE BEZ HASŁA NA CZAS TESTÓW
+            if st.button("Wejdź (Test)", use_container_width=True):
+                st.session_state.logged_user = user
+                user_data = st.session_state.db.get(user, {})
+                st.session_state.temp_picks = user_data.copy()
+                st.rerun()
     else:
         st.subheader(f"Zalogowano: {st.session_state.logged_user}")
         if st.button("Wyloguj"):
@@ -240,18 +230,27 @@ with tab1:
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
-                current_val = st.session_state.temp_picks.get(k, "-")
+                
+                raw_val = st.session_state.temp_picks.get(k, "-")
+                if pd.isna(raw_val) or not isinstance(raw_val, str) or "-" not in str(raw_val):
+                    current_val = "-"
+                else:
+                    current_val = str(raw_val)
+
                 left_selected = False
                 right_selected = False
                 num_games = 4
 
-                if current_val != "-" and "-" in str(current_val):
+                if current_val != "-":
                     try:
-                        parts = str(current_val).split("-")
+                        parts = current_val.split("-")
                         left_selected = int(parts[0]) == 4
                         right_selected = int(parts[1]) == 4
                         num_games = sum(map(int, parts))
-                    except: current_val = "-"
+                    except:
+                        current_val = "-"
+                        left_selected = False
+                        right_selected = False
                 
                 is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
                 match_locked = is_global_locked or is_match_result_known
@@ -336,19 +335,21 @@ with tab1:
                     else: 
                         parts = current_val.split("-")
                         if left_selected:
-                            pick_text = f'<b>{t1}</b> <b style="font-size: 1.2em;">4</b>-{parts[1]} {t2}'
+                            pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{parts[1]} {t2}'
                         elif right_selected:
-                            pick_text = f'{t1} {parts[0]}-<b style="font-size: 1.2em;">4</b> <b>{t2}</b>'
+                            pick_text = f'{t1} {parts[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
                         else:
                             pick_text = f'{t1} {current_val} {t2}'
                             
-                        st.markdown(f'<p style="margin-top:20px; font-size: 1.1em;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span></p>', unsafe_allow_html=True)
+                        st.markdown(f'<p style="margin-top:20px; font-size: 1.0em;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span></p>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
                     if st.button("💾 Zapisz", key=f"save_ind_{k}", disabled=match_locked or current_val == "-"):
-                        st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
-                        save_data(st.session_state.db, "wyniki.csv")
+                        fresh_db = load_data("wyniki.csv")
+                        fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+                        save_data(fresh_db, "wyniki.csv")
+                        st.session_state.db = fresh_db
                         st.toast(f"Zapisano mecz {t1} vs {t2}!")
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -366,8 +367,13 @@ with tab1:
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         if st.button("ZAPISZ WSZYSTKO", use_container_width=True, disabled=is_global_locked):
-            st.session_state.db[st.session_state.logged_user] = st.session_state.temp_picks
-            save_data(st.session_state.db, "wyniki.csv"); st.balloons(); st.success("Wszystko zapisane!"); st.rerun()
+            fresh_db = load_data("wyniki.csv")
+            fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+            save_data(fresh_db, "wyniki.csv")
+            st.session_state.db = fresh_db
+            st.balloons()
+            st.success("Wszystko zapisane!")
+            st.rerun()
 
 # --- RANKING ---
 with tab2:
@@ -408,6 +414,10 @@ with tab4:
             if t1 == "TBD" or t2 == "TBD": new_results[k] = curr; continue
             opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
             new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=opts.index(curr) if curr in opts else 0, key=f"adm_{k}")
+        
         if st.button("Zatwierdź Wyniki"):
-            st.session_state.results["OFFICIAL"] = new_results
-            save_data(st.session_state.results, "oficjalne_wyniki.csv"); st.rerun()
+            fresh_res = load_data("oficjalne_wyniki.csv")
+            fresh_res["OFFICIAL"] = new_results
+            save_data(fresh_res, "oficjalne_wyniki.csv")
+            st.session_state.results = fresh_res
+            st.rerun()
