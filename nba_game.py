@@ -47,7 +47,22 @@ def load_data(filename):
 def save_data(data, filename):
     pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
-def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False):
+def is_underdog(odd_str):
+    try:
+        return float(str(odd_str).replace(",", ".")) >= 2.1
+    except:
+        return False
+
+def check_pick_underdog(user_pick, odd_t1, odd_t2):
+    if pd.isna(user_pick) or user_pick == "-" or "-" not in str(user_pick): return False
+    try:
+        parts = str(user_pick).split("-")
+        if int(parts[0]) == 4: return is_underdog(odd_t1)
+        if int(parts[1]) == 4: return is_underdog(odd_t2)
+    except: pass
+    return False
+
+def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False, is_underdog_pick=False):
     if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
         return 0, "", "pts-normal"
     pts = 0
@@ -57,10 +72,12 @@ def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False
         if str(user_pick) == str(actual_result): 
             pts = 5 * multiplier
             if is_hot_take: pts += 5  
+            if is_underdog_pick: pts += 3  # +1 za zwycięzcę, +2 za wynik 
             return pts, "res-exact", "pts-exact"
         elif u_left_wins == a_left_wins: 
             pts = 3 * multiplier
             if is_hot_take: pts += 2  
+            if is_underdog_pick: pts += 1  # +1 za zwycięzcę
             return pts, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
@@ -80,8 +97,7 @@ def format_score(pts):
 
 def clean_odd(odd_val):
     val = str(odd_val).strip()
-    if val == "nan" or val == "" or val == "None":
-        return "-"
+    if val == "nan" or val == "" or val == "None": return "-"
     return val
 
 # --- 3. INICJALIZACJA ---
@@ -129,7 +145,7 @@ st.markdown("""
         background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; 
         display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
     }
-    .team-box img { margin-bottom: 8px; max-height: 80px; max-width: 100%; object-fit: contain; }
+    .team-box img { margin-bottom: 8px; max-height: 70px; max-width: 100%; object-fit: contain; }
     div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
@@ -278,15 +294,19 @@ with tab1:
                 odd_t1 = clean_odd(odds_db.get(f"{k}_T1", "-"))
                 odd_t2 = clean_odd(odds_db.get(f"{k}_T2", "-"))
                 
+                # Generowanie odznaki Underdog
+                ud_badge_t1 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t1) else ''
+                ud_badge_t2 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t2) else ''
+
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span>{ud_badge_t1}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span>{ud_badge_t2}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
@@ -326,11 +346,14 @@ with tab1:
                                     st.session_state.temp_picks[k] = new_v
                                     st.rerun()
 
-                # --- KALKULACJA POTENCJALNYCH PUNKTÓW ---
+                # --- KALKULACJA POTENCJALNYCH PUNKTÓW Z UWZGLĘDNIENIEM UNDERDOGA ---
                 mult = MULTIPLIERS[k]
-                pot_winner = (3 * mult) + (2 if is_hot else 0)
-                pot_exact = (5 * mult) + (5 if is_hot else 0)
-                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dokładny wynik {format_score(pot_exact)}</span></div>'
+                is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
+                
+                pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
+                pot_exact = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                
+                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Wynik {format_score(pot_exact)}</span></div>'
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
@@ -385,7 +408,17 @@ with tab2:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = sum(get_points_logic(p_data.get(k, "-"), actual_res_db.get(k, "W toku"), MULTIPLIERS[k], str(p_data.get(f"hot_{k}","False")).lower()=="true")[0] for k in ALL_KEYS)
+        pts = 0
+        for k in ALL_KEYS:
+            is_hot = str(p_data.get(f"hot_{k}","False")).lower()=="true"
+            u_pick = p_data.get(k, "-")
+            odd_t1 = odds_db.get(f"{k}_T1", "-")
+            odd_t2 = odds_db.get(f"{k}_T2", "-")
+            is_ud = check_pick_underdog(u_pick, odd_t1, odd_t2)
+            
+            match_pts = get_points_logic(u_pick, actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot, is_ud)[0]
+            pts += match_pts
+            
         leaderboard.append({"Gracz": p, "Suma": int(pts) if pts % 1 == 0 else round(pts, 1)})
     st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
@@ -397,7 +430,12 @@ with tab3:
         u_pick = u_data.get(k, "-")
         is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
         a_res = actual_res_db.get(k, "W toku")
-        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot)
+        
+        odd_t1 = odds_db.get(f"{k}_T1", "-")
+        odd_t2 = odds_db.get(f"{k}_T2", "-")
+        is_ud = check_pick_underdog(u_pick, odd_t1, odd_t2)
+        
+        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot, is_ud)
         st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot and u_pick!="-" else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
 
     STAGE_GROUPS_BRACKET = [("ZACHÓD", ["W1", "W2", "W3", "W4"]), ("WSCHÓD", ["E1", "E2", "E3", "E4"]), ("PÓŁFINAŁY KONFERENCJI", ["W_SF1", "W_SF2", "E_SF1", "E_SF2"]), ("FINAŁY KONFERENCJI", ["W_CF", "E_CF"]), ("FINAŁ NBA", ["FINALS"])]
