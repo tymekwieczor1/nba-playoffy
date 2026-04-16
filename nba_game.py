@@ -112,6 +112,13 @@ def clean_odd(odd_val):
     if val == "nan" or val == "" or val == "None": return "-"
     return val
 
+def auto_save():
+    if st.session_state.logged_user:
+        fresh_db = load_data("wyniki.csv")
+        fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+        save_data(fresh_db, "wyniki.csv")
+        st.session_state.db = fresh_db
+
 # --- 3. INICJALIZACJA ---
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
 if 'results' not in st.session_state: st.session_state.results = load_data("oficjalne_wyniki.csv")
@@ -185,9 +192,6 @@ st.markdown("""
 
     .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; background-color: rgba(255, 75, 75, 0.1) !important; font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px; }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
-    
-    .save-btn-col .stButton > button { border-color: #28a745 !important; color: #28a745 !important; background-color: rgba(40, 167, 69, 0.1) !important; font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px; }
-    .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
 
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     
@@ -299,19 +303,24 @@ with tab1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
                     st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span>{ud_t1}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
+                        st.session_state.temp_picks[k] = f"4-{num_games-4}"
+                        auto_save()
+                        st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
                     st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span>{ud_t2}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
-                        st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
+                        st.session_state.temp_picks[k] = f"{num_games-4}-4"
+                        auto_save()
+                        st.rerun()
                 
                 if current_val != "-":
                     st.markdown(f'<div class="hot-box {"hot-selected" if is_hot else ("unselected" if hot_disabled else "")}"><span style="font-size: 1.4em; font-weight: bold; color: {"white" if is_hot else "#aaa"};">🔥 UŻYJ HOT TAKE 🔥</span></div>', unsafe_allow_html=True)
                     if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
                         st.session_state.temp_picks[f"hot_{k}"] = "True" if not is_hot else "False"
-                        if not is_hot: st.toast("🔥 HOT TAKE AKTYWOWANY! 🔥")
+                        auto_save()
+                        if not is_hot: st.toast("🔥 HOT TAKE ZAPISANY! 🔥")
                         st.rerun()
 
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
@@ -330,60 +339,54 @@ with tab1:
                             st.markdown(f'<div class="game-btn {css_btn}">{g}</div>', unsafe_allow_html=True)
                             if st.button(f"{g}", key=f"bg_{k}_{g}", disabled=options_disabled, use_container_width=True):
                                 new_v = f"4-{g-4}" if left_selected else f"{g-4}-4"
-                                if current_val != new_v: st.session_state.temp_picks[k] = new_v; st.rerun()
+                                if current_val != new_v: 
+                                    st.session_state.temp_picks[k] = new_v
+                                    auto_save()
+                                    st.toast("Zapisano typ!")
+                                    st.rerun()
 
-                # --- NOWY FORMAT PODSUMOWANIA (WYŚRODKOWANY, Z PRZYCISKAMI W POZIOMIE) ---
-                if current_val == "-": 
-                    st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.2em; line-height: 1.4;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
-                else: 
-                    mult = MULTIPLIERS[k]
-                    is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
-                    pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
-                    pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
-                    pot_bonus = pot_exact_total - pot_winner
-                    
-                    pot_html = f'<div style="font-size: 0.9em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
-
-                    p = current_val.split("-")
-                    pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
-                    st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
+                # --- NOWY UKŁAD: WYŚRODKOWANY TYP I CZYSTY PRZYCISK ---
+                col_text, col_btn = st.columns([3, 1])
                 
-                # --- PRZYCISKI OBOK SIEBIE ---
-                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
-                c_btn1, c_btn2 = st.columns(2)
-                with c_btn1:
-                    st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
-                    if st.button("💾 Zapisz", key=f"save_ind_{k}", disabled=match_locked or current_val == "-", use_container_width=True):
-                        fresh_db = load_data("wyniki.csv"); fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-                        save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.toast("Zapisano!"); st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                with col_text:
+                    if current_val == "-": 
+                        st.markdown(f'<div style="margin-top:15px; font-size: 1.1em; line-height: 1.4;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
+                    else: 
+                        mult = MULTIPLIERS[k]
+                        is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
+                        pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
+                        pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                        pot_bonus = pot_exact_total - pot_winner
+                        
+                        pot_html = f'<div style="font-size: 0.9em; margin-top: 4px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
 
-                with c_btn2:
-                    st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
+                        p = current_val.split("-")
+                        pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
+                        st.markdown(f'<div style="margin-top:15px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
+                
+                with col_btn:
+                    st.markdown('<div class="clear-btn-col" style="margin-top: 15px;">', unsafe_allow_html=True)
                     if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-", use_container_width=True):
-                        st.session_state.temp_picks[k] = "-"; st.session_state.temp_picks[f"hot_{k}"] = "False"; st.rerun()
+                        st.session_state.temp_picks[k] = "-"
+                        st.session_state.temp_picks[f"hot_{k}"] = "False"
+                        auto_save()
+                        st.toast("Wyczyszczono typ!")
+                        st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 st.markdown('</div>', unsafe_allow_html=True)
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
-
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("ZAPISZ WSZYSTKO", use_container_width=True):
-            fresh_db = load_data("wyniki.csv"); fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-            save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.balloons(); st.success("Wszystko zapisane!"); st.rerun()
 
 # --- TYPY INNYCH ---
 with tab2:
     st.subheader("👀 Typy pozostałych graczy")
     st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie. Twoje typy są widoczne zawsze.")
     
-    # Przygotowanie kolejności kolumn (Zalogowany Gracz na początku)
     ordered_players = PLAYERS.copy()
     if st.session_state.logged_user and st.session_state.logged_user in ordered_players:
         ordered_players.remove(st.session_state.logged_user)
         ordered_players.insert(0, st.session_state.logged_user)
     
-    # Ręczne budowanie tabeli HTML, aby mieć kontrolę nad tłem każdej komórki
     html_table = '<div class="custom-table-wrapper"><table class="custom-table"><thead><tr><th>Mecz</th>'
     for p in ordered_players: 
         html_table += f'<th>{p}</th>'
@@ -399,7 +402,6 @@ with tab2:
             
             display_match_name = f"{t1} vs {t2}" if t1 != "TBD" and t2 != "TBD" else GENERIC_MATCH_NAMES.get(k, "Mecz")
             
-            # Najpierw obliczamy wszystkie punkty w tym rzędzie, żeby znaleźć max i min
             pts_dict = {}
             for p in ordered_players:
                 p_data = st.session_state.db.get(p, {})
@@ -409,22 +411,19 @@ with tab2:
                     pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
                     pts_dict[p] = pts
             
-            # Znajdź max i min (tylko jeśli ktoś w ogóle wytypował i mecz jest zakończony)
             max_pts = max(pts_dict.values()) if pts_dict else None
             min_pts = min(pts_dict.values()) if pts_dict else None
-            # Żeby nie podświetlać wszystkiego, jak wszyscy mają zero:
             has_differences = len(set(pts_dict.values())) > 1
 
             html_table += f'<tr><td><b>{display_match_name}</b></td>'
             
             for p in ordered_players:
                 bg_color = ""
-                # Detekcja Lidera i Marudera (Podświetlenie zielony/czerwony)
                 if p in pts_dict and has_differences:
                     if pts_dict[p] == max_pts:
-                        bg_color = "background-color: rgba(40, 167, 69, 0.25);" # Zielony
+                        bg_color = "background-color: rgba(40, 167, 69, 0.25);"
                     elif pts_dict[p] == min_pts:
-                        bg_color = "background-color: rgba(220, 53, 69, 0.25);" # Czerwony
+                        bg_color = "background-color: rgba(220, 53, 69, 0.25);"
 
                 if has_started or p == st.session_state.logged_user:
                     p_data = st.session_state.db.get(p, {})
@@ -446,7 +445,6 @@ with tab2:
             html_table += '</tr>'
             
     html_table += '</tbody></table></div>'
-    
     st.markdown(html_table, unsafe_allow_html=True)
 
 # --- RANKING ---
@@ -509,7 +507,6 @@ with tab5:
             fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
             save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
             
-        # --- STREFA NIEBEZPIECZNA ---
         st.markdown("<hr style='margin: 40px 0 20px 0; border-top: 2px solid #ff4b4b;'>", unsafe_allow_html=True)
         st.markdown("### 🚨 Strefa Niebezpieczna")
         if "confirm_clear" not in st.session_state: st.session_state.confirm_clear = False
