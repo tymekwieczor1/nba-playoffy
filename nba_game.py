@@ -290,7 +290,7 @@ with tab1:
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Obstawiaj do: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
                     <style>
@@ -502,7 +502,6 @@ with tab5:
     
     <div class="rules-card">
         <h3>✖️ Mnożniki Rund</h3>
-        <p>Im dalej w Playoffs, tym cenniejsze stają się Twoje typy! Podstawowe punkty mnożone są przez:</p>
         <ul>
             <li><b>Pierwsza Runda:</b> x1.0</li>
             <li><b>Półfinały Konferencji:</b> x1.3</li>
@@ -513,7 +512,7 @@ with tab5:
     
     <div class="rules-card">
         <h3>🔥 Opcja: Hot Take</h3>
-        <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b> na całe Playoffs! Używaj ich mądrze.</p>
+        <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b></p>
         <ul>
             <li>Jeśli trafisz zwycięzcę z Hot Takem: dodatkowe <b>+2 punkty</b></li>
             <li>Jeśli trafisz dokładny wynik z Hot Takem: dodatkowe <b>+5 punktów</b></li>
@@ -523,7 +522,7 @@ with tab5:
     
     <div class="rules-card">
         <h3>💰 Bonus: Underdog</h3>
-        <p>Jeśli drużyna na którą stawiasz ma kurs <b>2.10 lub wyższy</b> ( oznaczona jako 💰 UNDERDOG ), otrzymujesz ekstra punkty za odwagę:</p>
+        <p>Jeśli drużyna ma kurs <b>2.10 lub wyższy</b> oznaczona jest jako 💰 <b>UNDERDOG</b>:</p>
         <ul>
             <li>Jeśli postawisz na underdoga i wygra: dodatkowy <b>+1 punkt</b></li>
             <li>Jeśli trafisz dodatkowo dokładny wynik: kolejne <b>+2 punkty</b> (łącznie +3 punkty z bonusu)</li>
@@ -534,9 +533,9 @@ with tab5:
     <div class="rules-card">
         <h3>🔒 Zasady Typowania (Blokady)</h3>
         <ul>
-            <li>Typy można składać i zmieniać w zakładce "Twoje Typy" do momentu <b>Godziny Zamknięcia</b> przypisanej do konkretnego meczu. Po tym czasie mecz zostaje zablokowany.</li>
+            <li>Typy można składać i zmieniać w zakładce "Twoje Typy" do momentu <b>Godziny Zamknięcia</b> przypisanej do konkretnej serii. Po tym czasie typ zostaje zablokowany.</li>
             <li>Każde kliknięcie kafelka drużyny, cyfry czy "Hot Take" <b>zapisuje się automatycznie</b>.</li>
-            <li>W zakładce "Typy Innych" widzisz to, co obstawili Twoi znajomi, <b>dopiero gdy dany mecz zostanie zablokowany</b>. Do tego czasu ich typy są ukryte pod ikoną kłódki 🔒. Twoje własne typy są dla Ciebie zawsze widoczne.</li>
+            <li>W zakładce "Typy Innych" widzisz to, co obstawili inni, <b>dopiero gdy dana seria zostanie rozpoczęta</b>. Do tego czasu ich typy są ukryte pod ikoną kłódki 🔒. Twoje własne typy są dla Ciebie zawsze widoczne.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
