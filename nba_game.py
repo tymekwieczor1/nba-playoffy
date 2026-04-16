@@ -149,7 +149,7 @@ BRACKET["FINALS"] = [get_winner("W_CF", st.session_state.results, BRACKET["W_CF"
 ALL_KEYS = list(BRACKET.keys())
 
 # --- 4. CSS ---
-st.set_page_config(page_title="NBA Pickem' 2026", page_icon="🏀", layout="centered")
+st.set_page_config(page_title="NBA Playoff Pick'Em 2026", page_icon="🏀", layout="centered")
 
 st.markdown("""
     <style>
