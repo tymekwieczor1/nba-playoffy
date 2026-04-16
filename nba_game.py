@@ -207,6 +207,11 @@ st.markdown("""
     .pts-normal { background-color: #444; color: #bbb; }
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    
+    /* Naprawia ucinanie tekstu w tabelach */
+    table td {
+        white-space: nowrap !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -328,12 +333,18 @@ with tab1:
 
                 mult = MULTIPLIERS[k]
                 is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
-                pot_winner, pot_exact = (3*mult)+(2 if is_hot else 0)+(1 if is_curr_ud else 0), (5*mult)+(5 if is_hot else 0)+(3 if is_curr_ud else 0)
-                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Wynik {format_score(pot_exact)}</span></div>'
+                
+                # Zmiana logiki: pokazujemy tylko DODATKOWE punkty za poprawny wynik
+                pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
+                pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                pot_bonus = pot_exact_total - pot_winner
+                
+                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik {format_score(pot_bonus)}</span></div>'
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
-                    if current_val == "-": st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span><br>{pot_html}</div>', unsafe_allow_html=True)
+                    if current_val == "-": 
+                        st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
                     else: 
                         p = current_val.split("-")
                         pick_text = f'<b>{t1}</b> <b style="font-size: 1.2em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.2em;">4</b> <b>{t2}</b>'
@@ -400,7 +411,9 @@ with tab2:
                     if c % 2 == 0: bg_opacity += 0.04
                     if bg_opacity > 0: styles.iloc[r, c] = f'background-color: rgba(255,255,255,{bg_opacity})'
             return styles
-        st.dataframe(df_summary.style.apply(apply_zebra, axis=None), use_container_width=True)
+        
+        # Użyto st.table ZAMIAST st.dataframe, aby tekst nigdy się nie ucinał i był w pełni widoczny
+        st.table(df_summary.style.apply(apply_zebra, axis=None))
 
 # --- RANKING ---
 with tab3:
@@ -452,10 +465,7 @@ with tab5:
         if st.button("Zatwierdź Zmiany", use_container_width=True):
             fresh_res = load_data("oficjalne_wyniki.csv")
             fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
-            save_data(fresh_res, "oficjalne_wyniki.csv")
-            st.session_state.results = fresh_res
-            st.success("Zapisano!")
-            st.rerun()
+            save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
             
         # --- STREFA NIEBEZPIECZNA ---
         st.markdown("<hr style='margin: 40px 0 20px 0; border-top: 2px solid #ff4b4b;'>", unsafe_allow_html=True)
@@ -473,9 +483,7 @@ with tab5:
             col_y, col_n = st.columns(2)
             with col_y:
                 if st.button("Tak, usuń wszystko!", type="primary", use_container_width=True):
-                    # Czyszczenie bazy typów z pliku csv
                     save_data({}, "wyniki.csv")
-                    # Czyszczenie pamięci sesji
                     st.session_state.db = {}
                     st.session_state.temp_picks = {}
                     st.session_state.confirm_clear = False
