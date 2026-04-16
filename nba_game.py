@@ -4,10 +4,7 @@ from datetime import datetime
 import os
 
 # --- 1. KONFIGURACJA ---
-START_TIME = datetime(2026, 4, 18, 19, 0)
 ADMIN_PIN = "1398"
-
-# Wymuszenie polskiej strefy czasowej niezależnie od serwera!
 now = pd.Timestamp.now('Europe/Warsaw')
 now_str = now.strftime("%Y-%m-%d %H:%M")
 
@@ -40,6 +37,13 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
+ODDS = {
+    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
+    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
+    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
+    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
+}
+
 # --- 2. FUNKCJE ---
 def load_data(filename):
     if os.path.exists(filename):
@@ -50,6 +54,13 @@ def load_data(filename):
 def save_data(data, filename):
     pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
 
+def clean_pick(val):
+    if pd.isna(val): return "-"
+    val_str = str(val).strip()
+    if val_str in ["nan", "NaN", "None", ""]: return "-"
+    if "-" not in val_str: return "-"
+    return val_str
+
 def is_underdog(odd_str):
     try:
         return float(str(odd_str).replace(",", ".")) >= 2.1
@@ -57,7 +68,7 @@ def is_underdog(odd_str):
         return False
 
 def check_pick_underdog(user_pick, odd_t1, odd_t2):
-    if pd.isna(user_pick) or user_pick == "-" or "-" not in str(user_pick): return False
+    if user_pick == "-": return False
     try:
         parts = str(user_pick).split("-")
         if int(parts[0]) == 4: return is_underdog(odd_t1)
@@ -66,7 +77,7 @@ def check_pick_underdog(user_pick, odd_t1, odd_t2):
     return False
 
 def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False, is_underdog_pick=False):
-    if pd.isna(actual_result) or actual_result == "W toku" or pd.isna(user_pick) or user_pick == "-": 
+    if pd.isna(actual_result) or actual_result == "W toku" or user_pick == "-": 
         return 0, "", "pts-normal"
     pts = 0
     try:
@@ -227,7 +238,7 @@ with tab1:
             st.rerun()
 
         user_saved_data = st.session_state.db.get(st.session_state.logged_user, {})
-        placed_picks = sum(1 for k in ALL_KEYS if user_saved_data.get(k, "-") != "-")
+        placed_picks = sum(1 for k in ALL_KEYS if clean_pick(user_saved_data.get(k, "-")) != "-")
         hot_takes_used = sum(1 for k in ALL_KEYS if str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true")
         
         st.markdown(f"""
@@ -248,11 +259,8 @@ with tab1:
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 
-                raw_val = st.session_state.temp_picks.get(k, "-")
-                if pd.isna(raw_val) or not isinstance(raw_val, str) or "-" not in str(raw_val):
-                    current_val = "-"
-                else:
-                    current_val = str(raw_val)
+                # --- BEZPIECZNE POBIERANIE TYPU ---
+                current_val = clean_pick(st.session_state.temp_picks.get(k, "-"))
 
                 left_selected = False
                 right_selected = False
@@ -397,6 +405,7 @@ with tab1:
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
+        # Globalny przycisk zapisu zawsze pod ręką
         if st.button("ZAPISZ WSZYSTKO", use_container_width=True):
             fresh_db = load_data("wyniki.csv")
             fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
@@ -423,7 +432,7 @@ with tab2:
             for p in PLAYERS:
                 if is_time_locked:
                     p_data = st.session_state.db.get(p, {})
-                    pick = p_data.get(k, "-")
+                    pick = clean_pick(p_data.get(k, "-"))
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
                     row[p] = f"{pick} 🔥" if is_hot and pick != "-" else pick
                 else:
@@ -445,7 +454,7 @@ with tab3:
         pts = 0
         for k in ALL_KEYS:
             is_hot = str(p_data.get(f"hot_{k}","False")).lower()=="true"
-            u_pick = p_data.get(k, "-")
+            u_pick = clean_pick(p_data.get(k, "-"))
             odd_t1 = odds_db.get(f"{k}_T1", "-")
             odd_t2 = odds_db.get(f"{k}_T2", "-")
             is_ud = check_pick_underdog(u_pick, odd_t1, odd_t2)
@@ -461,7 +470,7 @@ with tab4:
     def draw_bracket_card(k):
         t1, t2, s1, s2 = BRACKET[k]
         u_data = st.session_state.db.get(st.session_state.logged_user, {})
-        u_pick = u_data.get(k, "-")
+        u_pick = clean_pick(u_data.get(k, "-"))
         is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
         a_res = actual_res_db.get(k, "W toku")
         
