@@ -10,6 +10,17 @@ now_str = now.strftime("%Y-%m-%d %H:%M")
 
 PLAYERS = ["Tymek", "Soból", "Maciek", "Kowal", "Paweł", "Mateusz", "Tomasz"]
 
+# Słownik z 4-cyfrowymi PIN-ami dla każdego gracza
+PLAYER_PINS = {
+    "Tymek": "4821",
+    "Soból": "7390",
+    "Maciek": "1564",
+    "Kowal": "8203",
+    "Paweł": "5912",
+    "Mateusz": "3748",
+    "Tomasz": "9156"
+}
+
 MULTIPLIERS = {
     "W1": 1.0, "W2": 1.0, "W3": 1.0, "W4": 1.0,
     "E1": 1.0, "E2": 1.0, "E3": 1.0, "E4": 1.0,
@@ -194,7 +205,7 @@ st.markdown("""
 
     .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; background-color: rgba(255, 75, 75, 0.1) !important; font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px; }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
-    
+
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     
     /* KOLORY DRABINKI ZGODNE Z PUNKTACJĄ */
@@ -241,11 +252,15 @@ with tab1:
     if st.session_state.logged_user is None:
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
         if user:
-            if st.button("Wejdź (Test)", use_container_width=True):
-                st.session_state.logged_user = user
-                user_data = st.session_state.db.get(user, {})
-                st.session_state.temp_picks = user_data.copy()
-                st.rerun()
+            pin_input = st.text_input("Podaj 4-cyfrowy PIN:", type="password", key=f"pin_{user}")
+            if st.button("Wejdź", use_container_width=True):
+                if pin_input == PLAYER_PINS.get(user):
+                    st.session_state.logged_user = user
+                    user_data = st.session_state.db.get(user, {})
+                    st.session_state.temp_picks = user_data.copy()
+                    st.rerun()
+                else:
+                    st.error("Błędny PIN! Spróbuj ponownie.")
     else:
         st.subheader(f"Zalogowano: {st.session_state.logged_user}")
         if st.button("Wyloguj"):
@@ -290,7 +305,7 @@ with tab1:
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 5px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Obstawiaj do: {match_start_time}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align: center; color: #888; font-size: 0.85em; margin-bottom: 15px;'>Mecz zamyka się: {match_start_time}</p>", unsafe_allow_html=True)
                 
                 st.markdown(f'''
                     <style>
@@ -502,6 +517,7 @@ with tab5:
     
     <div class="rules-card">
         <h3>✖️ Mnożniki Rund</h3>
+        <p>Im dalej w Playoffs, tym cenniejsze stają się Twoje typy! Podstawowe punkty mnożone są przez:</p>
         <ul>
             <li><b>Pierwsza Runda:</b> x1.0</li>
             <li><b>Półfinały Konferencji:</b> x1.3</li>
@@ -512,7 +528,7 @@ with tab5:
     
     <div class="rules-card">
         <h3>🔥 Opcja: Hot Take</h3>
-        <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b></p>
+        <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b> na całe Playoffs! Używaj ich mądrze.</p>
         <ul>
             <li>Jeśli trafisz zwycięzcę z Hot Takem: dodatkowe <b>+2 punkty</b></li>
             <li>Jeśli trafisz dokładny wynik z Hot Takem: dodatkowe <b>+5 punktów</b></li>
@@ -522,7 +538,7 @@ with tab5:
     
     <div class="rules-card">
         <h3>💰 Bonus: Underdog</h3>
-        <p>Jeśli drużyna ma kurs <b>2.10 lub wyższy</b> oznaczona jest jako 💰 <b>UNDERDOG</b>:</p>
+        <p>Jeśli drużyna na którą stawiasz ma kurs <b>2.10 lub wyższy</b> ( oznaczona jako 💰 UNDERDOG ), otrzymujesz ekstra punkty za odwagę:</p>
         <ul>
             <li>Jeśli postawisz na underdoga i wygra: dodatkowy <b>+1 punkt</b></li>
             <li>Jeśli trafisz dodatkowo dokładny wynik: kolejne <b>+2 punkty</b> (łącznie +3 punkty z bonusu)</li>
@@ -533,9 +549,9 @@ with tab5:
     <div class="rules-card">
         <h3>🔒 Zasady Typowania (Blokady)</h3>
         <ul>
-            <li>Typy można składać i zmieniać w zakładce "Twoje Typy" do momentu <b>Godziny Zamknięcia</b> przypisanej do konkretnej serii. Po tym czasie typ zostaje zablokowany.</li>
+            <li>Typy można składać i zmieniać w zakładce "Twoje Typy" do momentu <b>Godziny Zamknięcia</b> przypisanej do konkretnego meczu. Po tym czasie mecz zostaje zablokowany.</li>
             <li>Każde kliknięcie kafelka drużyny, cyfry czy "Hot Take" <b>zapisuje się automatycznie</b>.</li>
-            <li>W zakładce "Typy Innych" widzisz to, co obstawili inni, <b>dopiero gdy dana seria zostanie rozpoczęta</b>. Do tego czasu ich typy są ukryte pod ikoną kłódki 🔒. Twoje własne typy są dla Ciebie zawsze widoczne.</li>
+            <li>W zakładce "Typy Innych" widzisz to, co obstawili Twoi znajomi, <b>dopiero gdy dany mecz zostanie zablokowany</b>. Do tego czasu ich typy są ukryte pod ikoną kłódki 🔒. Twoje własne typy są dla Ciebie zawsze widoczne.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
