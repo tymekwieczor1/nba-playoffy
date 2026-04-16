@@ -192,7 +192,7 @@ st.markdown("""
 
     .clear-btn-col .stButton > button { border-color: #ff4b4b !important; color: #ff4b4b !important; background-color: rgba(255, 75, 75, 0.1) !important; font-size: 1.1em !important; padding: 10px !important; min-height: 55px !important; margin-top: 5px; }
     .clear-btn-col .stButton > button:hover { background-color: rgba(255, 75, 75, 0.2) !important; }
-
+    
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     
     /* KOLORY DRABINKI ZGODNE Z PUNKTACJĄ */
@@ -350,27 +350,27 @@ with tab1:
                                     st.rerun()
 
                 # --- NOWY UKŁAD: WYŚRODKOWANY TYP I CZYSTY PRZYCISK ---
-                col_text, col_btn = st.columns([3, 1])
-                
-                with col_text:
-                    if current_val == "-": 
-                        st.markdown(f'<div style="margin-top:15px; font-size: 1.1em; line-height: 1.4;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
-                    else: 
-                        mult = MULTIPLIERS[k]
-                        is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
-                        pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
-                        pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
-                        pot_bonus = pot_exact_total - pot_winner
-                        
-                        pot_html = f'<div style="font-size: 0.9em; margin-top: 4px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
+                if current_val == "-": 
+                    st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.2em; line-height: 1.4;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
+                else: 
+                    mult = MULTIPLIERS[k]
+                    is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
+                    pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
+                    pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                    pot_bonus = pot_exact_total - pot_winner
+                    
+                    pot_html = f'<div style="font-size: 0.9em; margin-top: 4px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
 
-                        p = current_val.split("-")
-                        pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
-                        st.markdown(f'<div style="margin-top:15px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
+                    p = current_val.split("-")
+                    pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
+                    st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
                 
-                with col_btn:
-                    st.markdown('<div class="clear-btn-col" style="margin-top: 15px;">', unsafe_allow_html=True)
-                    if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-", use_container_width=True):
+                # --- PRZYCISK WYCZYŚĆ (Wyśrodkowany pod typem) ---
+                st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
+                _, c_btn, _ = st.columns([1, 2, 1])
+                with c_btn:
+                    st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
+                    if st.button("🗑️ Wyczyść Typ", key=f"clear_{k}", disabled=match_locked or current_val == "-", use_container_width=True):
                         st.session_state.temp_picks[k] = "-"
                         st.session_state.temp_picks[f"hot_{k}"] = "False"
                         auto_save()
@@ -378,7 +378,6 @@ with tab1:
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                st.markdown('</div>', unsafe_allow_html=True)
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
 # --- TYPY INNYCH ---
@@ -405,6 +404,9 @@ with tab2:
             is_match_finished = actual_res != "W toku" and actual_res != "-"
             
             display_match_name = f"{t1} vs {t2}" if t1 != "TBD" and t2 != "TBD" else GENERIC_MATCH_NAMES.get(k, "Mecz")
+            
+            if is_match_finished:
+                display_match_name += f"<br><span style='font-size: 0.85em; color: #888; font-weight: normal;'>Wynik: {actual_res}</span>"
             
             pts_dict = {}
             for p in ordered_players:
