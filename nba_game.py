@@ -37,13 +37,6 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
-ODDS = {
-    "Thunder": 1.25, "8 Seed": 3.50, "Lakers": 1.85, "Rockets": 1.95,
-    "Nuggets": 1.40, "Timberwolves": 2.70, "Spurs": 1.60, "Trail Blazers": 2.20,
-    "Pistons": 1.30, "Cavaliers": 1.75, "Raptors": 2.05, "Knicks": 1.50,
-    "Hawks": 2.40, "Celtics": 1.15, "7 Seed": 4.80, "TBD": "-"
-}
-
 # --- 2. FUNKCJE ---
 def load_data(filename):
     if os.path.exists(filename):
@@ -85,6 +78,12 @@ def get_winner(match_key, results, teams):
 def format_score(pts):
     return f"+{int(pts)}" if pts % 1 == 0 else f"+{round(pts, 1)}"
 
+def clean_odd(odd_val):
+    val = str(odd_val).strip()
+    if val == "nan" or val == "" or val == "None":
+        return "-"
+    return val
+
 # --- 3. INICJALIZACJA ---
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
 if 'results' not in st.session_state: st.session_state.results = load_data("oficjalne_wyniki.csv")
@@ -92,6 +91,7 @@ if 'logged_user' not in st.session_state: st.session_state.logged_user = None
 if 'temp_picks' not in st.session_state: st.session_state.temp_picks = {}
 
 actual_res_db = st.session_state.results.get("OFFICIAL", {})
+odds_db = st.session_state.results.get("ODDS", {})
 
 R1_MAP = {
     "W1": ["Thunder", "8 Seed", "1", "8"], "W2": ["Lakers", "Rockets", "4", "5"],
@@ -187,7 +187,6 @@ with tab1:
     if st.session_state.logged_user is None:
         user = st.selectbox("Wybierz gracza:", [""] + PLAYERS)
         if user:
-            # LOGOWANIE BEZ HASŁA NA CZAS TESTÓW
             if st.button("Wejdź (Test)", use_container_width=True):
                 st.session_state.logged_user = user
                 user_data = st.session_state.db.get(user, {})
@@ -262,7 +261,6 @@ with tab1:
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
                 
-                # --- BEZPIECZNY UKŁAD DRUŻYN (wymusza poziom) ---
                 st.markdown(f'''
                     <style>
                     #team-row-{k} + div[data-testid="stHorizontalBlock"] {{
@@ -277,16 +275,18 @@ with tab1:
                 
                 c1, c2 = st.columns(2)
                 logo_t1, logo_t2 = LOGOS.get(t1, LOGOS["TBD"]), LOGOS.get(t2, LOGOS["TBD"])
+                odd_t1 = clean_odd(odds_db.get(f"{k}_T1", "-"))
+                odd_t2 = clean_odd(odds_db.get(f"{k}_T2", "-"))
                 
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t1,"-")}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span></div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {ODDS.get(t2,"-")}</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:5px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span></div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
@@ -299,7 +299,6 @@ with tab1:
 
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
                     
-                    # --- BEZPIECZNY UKŁAD KÓŁEK (wymusza poziom na max szerokość) ---
                     st.markdown(f'''
                         <style>
                         #game-row-{k} + div[data-testid="stHorizontalBlock"] {{
@@ -327,11 +326,16 @@ with tab1:
                                     st.session_state.temp_picks[k] = new_v
                                     st.rerun()
 
-                # --- NOWE WYSWIETLANIE TYPU Z NAZWAMI I POGRUBIENIEM ---
+                # --- KALKULACJA POTENCJALNYCH PUNKTÓW ---
+                mult = MULTIPLIERS[k]
+                pot_winner = (3 * mult) + (2 if is_hot else 0)
+                pot_exact = (5 * mult) + (5 if is_hot else 0)
+                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dokładny wynik {format_score(pot_exact)}</span></div>'
+
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
                     if current_val == "-": 
-                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></p>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span><br>{pot_html}</div>', unsafe_allow_html=True)
                     else: 
                         parts = current_val.split("-")
                         if left_selected:
@@ -341,7 +345,7 @@ with tab1:
                         else:
                             pick_text = f'{t1} {current_val} {t2}'
                             
-                        st.markdown(f'<p style="margin-top:20px; font-size: 1.0em;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span></p>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
@@ -408,16 +412,37 @@ with tab4:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
         new_results = {}
+        new_odds = {}
+        
+        st.markdown("### Wprowadzanie Wyników i Kursów")
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
-            curr = actual_res_db.get(k, "W toku")
-            if t1 == "TBD" or t2 == "TBD": new_results[k] = curr; continue
-            opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
-            new_results[k] = st.selectbox(f"Wynik {t1}-{t2}", opts, index=opts.index(curr) if curr in opts else 0, key=f"adm_{k}")
-        
-        if st.button("Zatwierdź Wyniki"):
+            curr_res = actual_res_db.get(k, "W toku")
+            curr_odd_t1 = clean_odd(odds_db.get(f"{k}_T1", ""))
+            curr_odd_t2 = clean_odd(odds_db.get(f"{k}_T2", ""))
+            
+            if t1 == "TBD" or t2 == "TBD":
+                new_results[k] = curr_res
+                new_odds[f"{k}_T1"] = curr_odd_t1
+                new_odds[f"{k}_T2"] = curr_odd_t2
+                continue
+                
+            st.markdown(f"**{t1} vs {t2}**")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
+                new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}", label_visibility="collapsed")
+            with c2:
+                new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}", placeholder=f"Kurs {t1}")
+            with c3:
+                new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}", placeholder=f"Kurs {t2}")
+            st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+            
+        if st.button("Zatwierdź Wyniki i Kursy", use_container_width=True):
             fresh_res = load_data("oficjalne_wyniki.csv")
             fresh_res["OFFICIAL"] = new_results
+            fresh_res["ODDS"] = new_odds
             save_data(fresh_res, "oficjalne_wyniki.csv")
             st.session_state.results = fresh_res
+            st.success("Zapisano zmiany!")
             st.rerun()
