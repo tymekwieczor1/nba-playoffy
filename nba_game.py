@@ -146,29 +146,17 @@ st.set_page_config(page_title="NBA Predictor 2026", page_icon="🏀", layout="ce
 
 st.markdown("""
     <style>
-    div[data-testid="stTabs"] > div:first-child {
-        position: sticky; top: 40px; z-index: 999;
-        background-color: #0e1117; padding: 10px 0 15px 0; border-bottom: 2px solid #333;
-    }
+    div[data-testid="stTabs"] > div:first-child { position: sticky; top: 40px; z-index: 999; background-color: #0e1117; padding: 10px 0 15px 0; border-bottom: 2px solid #333; }
     button[data-baseweb="tab"] p, button[data-baseweb="tab"] div { font-size: 20px !important; font-weight: bold !important; }
     button[data-baseweb="tab"] { padding-top: 15px !important; padding-bottom: 15px !important; }
     .match-card { margin-bottom: 20px; }
     
-    .team-box {
-        border-radius: 12px; padding: 10px 4px; text-align: center; border: 2px solid #444;
-        background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; 
-        display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
-    }
+    .team-box { border-radius: 12px; padding: 10px 4px; text-align: center; border: 2px solid #444; background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
     .team-box img { margin-bottom: 8px; max-height: 80px; max-width: 100%; object-fit: contain; }
     div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
-    .game-btn {
-        border-radius: 50%; width: 50px; height: 50px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.3em; font-weight: bold; margin: 0 auto;
-        border: 2px solid #444; transition: 0.3s;
-    }
+    .game-btn { border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.3em; font-weight: bold; margin: 0 auto; border: 2px solid #444; transition: 0.3s; }
     .game-btn-selected { border-color: #0099ff; background-color: rgba(0, 153, 255, 0.2); color: #0099ff; box-shadow: 0 0 12px rgba(0, 153, 255, 0.4); }
     .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
     .game-btn-disabled { opacity: 0.3; border-color: #333; }
@@ -176,11 +164,7 @@ st.markdown("""
     div.element-container:has(.game-btn) + div.element-container { margin-top: -50px; position: relative; z-index: 10; display: flex; justify-content: center; }
     div.element-container:has(.game-btn) + div.element-container button { height: 50px; opacity: 0 !important; cursor: pointer; padding: 0 !important; margin: 0 auto !important; display: block !important; }
 
-    .hot-box {
-        border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
-        background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px; margin: 15px 0;
-        display: flex; align-items: center; justify-content: center;
-    }
+    .hot-box { border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b; background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px; margin: 15px 0; display: flex; align-items: center; justify-content: center; }
     .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
     div.element-container:has(.hot-box) + div.element-container { margin-top: -75px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
@@ -208,10 +192,13 @@ st.markdown("""
     .match-box { border: 1px solid #444; border-radius: 10px; padding: 15px; margin-bottom: 10px; background-color: rgba(0, 0, 0, 0.2); }
     .logo-bg { background-color: white; border-radius: 50%; padding: 5px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     
-    /* Naprawia ucinanie tekstu w tabelach */
-    table td {
-        white-space: nowrap !important;
-    }
+    /* STYLE DLA NOWEJ TABELI HTML */
+    .custom-table-wrapper { overflow-x: auto; margin-bottom: 20px; border-radius: 10px; }
+    .custom-table { width: 100%; border-collapse: collapse; color: #fff; font-size: 0.95em; }
+    .custom-table th { background-color: #262730; padding: 15px; border: 1px solid #444; text-align: center !important; white-space: nowrap; }
+    .custom-table td { padding: 12px 10px; border: 1px solid #444; text-align: center; vertical-align: middle; white-space: nowrap; min-width: 120px; }
+    .custom-table tr:nth-child(even) td { background-color: rgba(255, 255, 255, 0.05); }
+    .custom-table tr td:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -334,12 +321,11 @@ with tab1:
                 mult = MULTIPLIERS[k]
                 is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
                 
-                # Zmiana logiki: pokazujemy tylko DODATKOWE punkty za poprawny wynik
                 pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
                 pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
                 pot_bonus = pot_exact_total - pot_winner
                 
-                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik {format_score(pot_bonus)}</span></div>'
+                pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
@@ -375,6 +361,12 @@ with tab2:
     st.subheader("👀 Typy pozostałych graczy")
     st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie. Twoje typy są widoczne zawsze.")
     
+    # Przygotowanie kolejności kolumn (Zalogowany Gracz na początku)
+    ordered_players = PLAYERS.copy()
+    if st.session_state.logged_user and st.session_state.logged_user in ordered_players:
+        ordered_players.remove(st.session_state.logged_user)
+        ordered_players.insert(0, st.session_state.logged_user)
+    
     summary_data = []
     for stage_name, keys in STAGE_GROUPS:
         for k in keys:
@@ -382,38 +374,35 @@ with tab2:
             match_start_time = times_db.get(k, "2026-04-18 19:00")
             has_started = now_str >= match_start_time
             actual_res = actual_res_db.get(k, "W toku")
+            is_match_finished = actual_res != "W toku" and actual_res != "-"
             
             display_match_name = f"{t1} vs {t2}" if t1 != "TBD" and t2 != "TBD" else GENERIC_MATCH_NAMES.get(k, "Mecz")
             row = {"Mecz": display_match_name}
             
-            for p in PLAYERS:
+            for p in ordered_players:
                 if has_started or p == st.session_state.logged_user:
                     p_data = st.session_state.db.get(p, {})
                     pick = clean_pick(p_data.get(k, "-"))
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
-                    display_text = f"{pick} 🔥" if is_hot and pick != "-" else pick
                     
-                    if actual_res != "W toku" and actual_res != "-" and pick != "-":
-                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
-                        display_text += f" ({int(pts) if pts % 1 == 0 else round(pts,1)} pkt)"
+                    if pick == "-":
+                        display_text = "-"
+                    else:
+                        display_text = f"<b>{pick}</b> 🔥" if is_hot else f"<b>{pick}</b>"
+                        if is_match_finished:
+                            pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
+                            pts_str = str(int(pts)) if pts % 1 == 0 else str(round(pts, 1))
+                            display_text += f"<br><span style='font-size: 0.85em; color: #aaa;'>({pts_str} pkt)</span>"
+                    
                     row[p] = display_text
-                else: row[p] = "🔒"
+                else: 
+                    row[p] = "🔒"
             summary_data.append(row)
     
     if summary_data:
-        df_summary = pd.DataFrame(summary_data).set_index("Mecz")
-        def apply_zebra(df):
-            styles = pd.DataFrame('', index=df.index, columns=df.columns)
-            for r in range(len(df)):
-                for c in range(len(df.columns)):
-                    bg_opacity = 0
-                    if r % 2 == 0: bg_opacity += 0.04
-                    if c % 2 == 0: bg_opacity += 0.04
-                    if bg_opacity > 0: styles.iloc[r, c] = f'background-color: rgba(255,255,255,{bg_opacity})'
-            return styles
-        
-        # Użyto st.table ZAMIAST st.dataframe, aby tekst nigdy się nie ucinał i był w pełni widoczny
-        st.table(df_summary.style.apply(apply_zebra, axis=None))
+        df_summary = pd.DataFrame(summary_data)
+        html_table = df_summary.to_html(escape=False, index=False, classes="custom-table")
+        st.markdown(f'<div class="custom-table-wrapper">{html_table}</div>', unsafe_allow_html=True)
 
 # --- RANKING ---
 with tab3:
@@ -467,29 +456,18 @@ with tab5:
             fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
             save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
             
-        # --- STREFA NIEBEZPIECZNA ---
         st.markdown("<hr style='margin: 40px 0 20px 0; border-top: 2px solid #ff4b4b;'>", unsafe_allow_html=True)
         st.markdown("### 🚨 Strefa Niebezpieczna")
-        
-        if "confirm_clear" not in st.session_state:
-            st.session_state.confirm_clear = False
-            
+        if "confirm_clear" not in st.session_state: st.session_state.confirm_clear = False
         if st.button("🗑️ Wyczyść wszystkie typy graczy", type="primary", use_container_width=True):
             st.session_state.confirm_clear = True
             st.rerun()
-            
         if st.session_state.confirm_clear:
             st.warning("⚠️ Czy na pewno chcesz trwale usunąć WSZYSTKIE typy WSZYSTKICH graczy? Tej operacji nie można cofnąć!")
             col_y, col_n = st.columns(2)
             with col_y:
                 if st.button("Tak, usuń wszystko!", type="primary", use_container_width=True):
-                    save_data({}, "wyniki.csv")
-                    st.session_state.db = {}
-                    st.session_state.temp_picks = {}
-                    st.session_state.confirm_clear = False
-                    st.success("Wszystkie typy zostały trwale usunięte!")
-                    st.rerun()
+                    save_data({}, "wyniki.csv"); st.session_state.db = {}; st.session_state.temp_picks = {}; st.session_state.confirm_clear = False; st.success("Usunięte!"); st.rerun()
             with col_n:
                 if st.button("Anuluj", use_container_width=True):
-                    st.session_state.confirm_clear = False
-                    st.rerun()
+                    st.session_state.confirm_clear = False; st.rerun()
