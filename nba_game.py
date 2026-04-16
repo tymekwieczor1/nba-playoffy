@@ -143,6 +143,33 @@ st.markdown("""
     div.element-container:has(.team-box) + div.element-container { margin-top: -160px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 160px; opacity: 0 !important; cursor: pointer; }
 
+    /* --- OKRĄGŁE PRZYCISKI LICZBY MECZÓW (STYL NBA) --- */
+    .game-btn {
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        margin: 0 auto;
+        border: 2px solid #444;
+        transition: 0.3s;
+    }
+    .game-btn-selected {
+        border-color: #0099ff;
+        background-color: rgba(0, 153, 255, 0.2);
+        color: #0099ff;
+        box-shadow: 0 0 12px rgba(0, 153, 255, 0.4);
+    }
+    .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
+    .game-btn-disabled { opacity: 0.3; border-color: #333; }
+    
+    div.element-container:has(.game-btn) + div.element-container { margin-top: -60px; position: relative; z-index: 10; }
+    div.element-container:has(.game-btn) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
+
+
     .hot-box {
         border-radius: 10px; padding: 10px; text-align: center; border: 2px solid #ff4b4b;
         background: rgba(255, 75, 75, 0.05); transition: 0.3s; height: 60px;
@@ -179,10 +206,6 @@ st.markdown("""
         margin-top: 5px;
     }
     .save-btn-col .stButton > button:hover { background-color: rgba(40, 167, 69, 0.2) !important; }
-
-    div[data-baseweb="select"] { font-size: 20px !important; }
-    div[data-baseweb="select"] > div { font-size: 20px !important; min-height: 50px !important; }
-    div[data-baseweb="popover"] ul li { font-size: 20px !important; padding: 10px !important; }
 
     .round-header { background-color: #1e1e1e; padding: 15px; border-radius: 10px; text-align: center; margin: 40px 0 30px 0; border-left: 5px solid #f82910; border-right: 5px solid #f82910; font-weight: bold; font-size: 1.4em; text-transform: uppercase; letter-spacing: 1px; }
     .pts-badge { font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 0.8em; margin-left: 8px; display: inline-block; }
@@ -266,6 +289,7 @@ with tab1:
                 is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
                 is_hot = (is_hot_str == "true")
                 hot_disabled = match_locked or current_val == "-" or (not is_hot and hot_takes_used >= 2)
+                options_disabled = match_locked or current_val == "-"
 
                 st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                 st.markdown(f"<h4 style='text-align: center; margin-bottom: 15px; color: #ddd;'>{t1} vs {t2}</h4>", unsafe_allow_html=True)
@@ -292,11 +316,21 @@ with tab1:
                         if not is_hot: st.toast("🔥 HOT TAKE AKTYWOWANY! 🔥")
                         st.rerun()
 
-                    st.markdown(f'<div style="font-weight:bold;margin-bottom:5px;color:#ccc;">Liczba meczów serii:</div>', unsafe_allow_html=True)
-                    selected_games = st.selectbox(f"L_{k}", [4, 5, 6, 7], index=[4, 5, 6, 7].index(num_games) if num_games in [4, 5, 6, 7] else 0, key=f"sl_{k}", disabled=match_locked, label_visibility="collapsed")
-                    
-                    new_val = f"4-{selected_games-4}" if left_selected else f"{selected_games-4}-4"
-                    if current_val != new_val: st.session_state.temp_picks[k] = new_val; st.rerun()
+                    # ZAMIAST SELECTBOXA: OKRĄGŁE PRZYCISKI
+                    st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
+                    g_cols = st.columns(4)
+                    for idx, g in enumerate([4, 5, 6, 7]):
+                        with g_cols[idx]:
+                            is_sel = (num_games == g)
+                            css_btn = "game-btn-selected" if is_sel else "game-btn-unselected"
+                            if options_disabled: css_btn += " game-btn-disabled"
+                            
+                            st.markdown(f'<div class="game-btn {css_btn}">{g}</div>', unsafe_allow_html=True)
+                            if st.button(f"{g}", key=f"bg_{k}_{g}", disabled=options_disabled, use_container_width=True):
+                                new_v = f"4-{g-4}" if left_selected else f"{g-4}-4"
+                                if current_val != new_v: 
+                                    st.session_state.temp_picks[k] = new_v
+                                    st.rerun()
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
@@ -315,8 +349,8 @@ with tab1:
                 with colC:
                     st.markdown('<div class="clear-btn-col">', unsafe_allow_html=True)
                     if st.button("🗑️ Wyczyść", key=f"clear_{k}", disabled=match_locked or current_val == "-"):
-                        st.session_state.temp_picks[k] = "-"; st.session_state.temp_picks[f"hot_{k}"] = "False"
-                        if f"sl_{k}" in st.session_state: del st.session_state[f"sl_{k}"]
+                        st.session_state.temp_picks[k] = "-"
+                        st.session_state.temp_picks[f"hot_{k}"] = "False"
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
