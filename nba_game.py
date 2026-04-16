@@ -136,13 +136,10 @@ st.markdown("""
     
     .match-card { margin-bottom: 20px; }
     
-    /* --- DRUŻYNY W JEDNYM RZĘDZIE (KOMPAKTOWE) --- */
+    /* --- DRUŻYNY W JEDNYM RZĘDZIE --- */
     .team-row-start + div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        justify-content: space-between !important;
-        gap: 8px !important; /* Mniejszy odstęp by zmieścić na wąskich ekranach */
+        display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
+        justify-content: space-between !important; gap: 8px !important;
     }
     .team-row-start + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         width: 48% !important; flex: 1 1 48% !important; min-width: 0 !important;
@@ -151,28 +148,25 @@ st.markdown("""
     .team-box {
         border-radius: 12px; padding: 10px 4px; text-align: center; border: 2px solid #444;
         background: rgba(255,255,255,0.02); transition: 0.3s; height: 180px; 
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        overflow: hidden; /* Zapobiega rozpychaniu przez długie nazwy */
+        display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
     }
     .team-box img { margin-bottom: 8px; max-height: 80px; max-width: 100%; object-fit: contain; }
-    
     div.element-container:has(.team-box) + div.element-container { margin-top: -180px; position: relative; z-index: 10; }
     div.element-container:has(.team-box) + div.element-container button { height: 180px; opacity: 0 !important; cursor: pointer; }
 
-    /* --- KÓŁKA GIER (ZMNIEJSZONE I ZBITE) --- */
+    /* --- KÓŁKA GIER W JEDNYM RZĘDZIE (WYMUSZONE) --- */
     .game-row-start + div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        justify-content: center !important;
-        gap: 10px !important; /* Bardzo ciasno */
+        display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
+        justify-content: space-evenly !important; align-items: center !important;
+        width: 100% !important; padding: 0 !important; gap: 5px !important;
     }
     .game-row-start + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        width: 50px !important; flex: 0 1 50px !important; min-width: 0 !important;
+        width: 25% !important; flex: 1 1 25% !important; min-width: 0 !important;
+        display: flex !important; justify-content: center !important;
     }
     
     .game-btn {
-        border-radius: 50%; width: 50px; height: 50px; /* Zmniejszone kółka z 60 na 50 */
+        border-radius: 50%; width: 55px; height: 55px;
         display: flex; align-items: center; justify-content: center;
         font-size: 1.3em; font-weight: bold; margin: 0 auto;
         border: 2px solid #444; transition: 0.3s;
@@ -181,8 +175,14 @@ st.markdown("""
     .game-btn-unselected { background-color: rgba(255,255,255,0.02); color: #aaa; }
     .game-btn-disabled { opacity: 0.3; border-color: #333; }
     
-    div.element-container:has(.game-btn) + div.element-container { margin-top: -50px; position: relative; z-index: 10; }
-    div.element-container:has(.game-btn) + div.element-container button { height: 50px; opacity: 0 !important; cursor: pointer; padding: 0 !important; margin: 0 !important; }
+    /* Wyśrodkowanie przezroczystych przycisków nałożonych na kółka */
+    div.element-container:has(.game-btn) + div.element-container { 
+        margin-top: -55px; position: relative; z-index: 10; display: flex; justify-content: center;
+    }
+    div.element-container:has(.game-btn) + div.element-container button { 
+        height: 55px !important; width: 55px !important; border-radius: 50% !important;
+        opacity: 0 !important; cursor: pointer; padding: 0 !important; margin: 0 auto !important; display: block !important;
+    }
 
     /* --- HOT TAKE --- */
     .hot-box {
@@ -193,6 +193,9 @@ st.markdown("""
     .hot-selected { background: rgba(255, 75, 75, 0.2) !important; box-shadow: 0 0 15px rgba(255, 75, 75, 0.5); border: 3px solid #ff4b4b !important; }
     div.element-container:has(.hot-box) + div.element-container { margin-top: -75px; position: relative; z-index: 10; }
     div.element-container:has(.hot-box) + div.element-container button { height: 60px; opacity: 0 !important; cursor: pointer; }
+
+    /* Wymuszanie braku stackowania na telefonach - ogólne */
+    div[data-testid="column"] { min-width: 0 !important; }
 
     /* Zaznaczenia */
     .selected-blue { border: 3px solid #0099ff !important; background: rgba(0, 153, 255, 0.1) !important; box-shadow: 0 0 10px rgba(0, 153, 255, 0.3); }
@@ -241,6 +244,7 @@ with tab1:
         
         is_global_locked = now > START_TIME
 
+        # Statystyki zapisanych typów
         user_saved_data = st.session_state.db.get(st.session_state.logged_user, {})
         placed_picks = sum(1 for k in ALL_KEYS if user_saved_data.get(k, "-") != "-")
         hot_takes_used = sum(1 for k in ALL_KEYS if str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true")
@@ -335,12 +339,14 @@ with tab1:
                                     st.session_state.temp_picks[k] = new_v
                                     st.rerun()
 
+                # --- PODSUMOWANIE TYPU Z NAZWAMI DRUŻYN ---
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
                     if current_val == "-": 
-                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <b style="color:#ff4b4b;">BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
+                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><b style="color:#ff4b4b;">BRAK !!! 🚨</b></p>', unsafe_allow_html=True)
                     else: 
-                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <b style="color:#0099ff;">{current_val}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
+                        # DODANO NAZWY DRUŻYN PRZY WYNIKU
+                        st.markdown(f'<p style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><b style="color:#0099ff;">{t1} {current_val} {t2}{" 🔥" if is_hot else ""}</b></p>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
