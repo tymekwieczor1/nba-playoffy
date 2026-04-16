@@ -217,10 +217,14 @@ st.markdown("""
     .custom-table td { padding: 12px 10px; border: 1px solid #444; text-align: center; vertical-align: middle; white-space: nowrap; min-width: 120px; line-height: 1.4;}
     .custom-table tr:nth-child(even) td { background-color: rgba(255, 255, 255, 0.05); }
     .custom-table tr td:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
+    
+    /* STYLE ZASAD */
+    .rules-card { background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; border: 1px solid #444; margin-bottom: 15px; }
+    .rules-card h3 { margin-top: 0; color: #0099ff; }
     </style>
     """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["🖋️ Twoje Typy", "👀 Typy Innych", "🏆 Ranking", "📊 Drabinka", "⚙️ Admin"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🖋️ Twoje Typy", "👀 Typy Innych", "🏆 Ranking", "📊 Drabinka", "📜 Zasady", "⚙️ Admin"])
 
 STAGE_GROUPS = [
     ("PIERWSZA RUNDA - ZACHÓD", ["W1", "W2", "W3", "W4"]),
@@ -478,8 +482,62 @@ with tab4:
             st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             for k in v_keys: draw_bracket_card(k)
 
-# --- ADMIN ---
+# --- ZASADY ---
 with tab5:
+    st.subheader("📜 Zasady Gry")
+    
+    st.markdown("""
+    <div class="rules-card">
+        <h3>🎯 Podstawowa Punktacja</h3>
+        <ul>
+            <li>Trafienie <b>zwycięzcy serii</b>: <b>3 punkty</b></li>
+            <li>Trafienie <b>dokładnego wyniku serii</b> (np. 4-2): dodatkowe <b>2 punkty</b> (łącznie 5 punktów)</li>
+        </ul>
+    </div>
+    
+    <div class="rules-card">
+        <h3>✖️ Mnożniki Rund</h3>
+        <p>Im dalej w Playoffs, tym cenniejsze stają się Twoje typy! Podstawowe punkty mnożone są przez:</p>
+        <ul>
+            <li><b>Pierwsza Runda:</b> x1.0</li>
+            <li><b>Półfinały Konferencji:</b> x1.3</li>
+            <li><b>Finały Konferencji:</b> x1.6</li>
+            <li><b>Finał NBA:</b> x2.0</li>
+        </ul>
+    </div>
+    
+    <div class="rules-card">
+        <h3>🔥 Opcja: Hot Take</h3>
+        <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b> na całe Playoffs! Używaj ich mądrze.</p>
+        <ul>
+            <li>Jeśli trafisz zwycięzcę z Hot Takem: dodatkowe <b>+2 punkty</b></li>
+            <li>Jeśli trafisz dokładny wynik z Hot Takem: dodatkowe <b>+5 punktów</b></li>
+            <li><i>Uwaga: Punkty z Hot Take są stałe i NIE są mnożone przez mnożnik rundy!</i></li>
+        </ul>
+    </div>
+    
+    <div class="rules-card">
+        <h3>💰 Bonus: Underdog</h3>
+        <p>Jeśli drużyna na którą stawiasz ma kurs <b>2.10 lub wyższy</b> ( oznaczona jako 💰 UNDERDOG ), otrzymujesz ekstra punkty za odwagę:</p>
+        <ul>
+            <li>Jeśli postawisz na underdoga i wygra: dodatkowy <b>+1 punkt</b></li>
+            <li>Jeśli trafisz dodatkowo dokładny wynik: kolejne <b>+2 punkty</b> (łącznie +3 punkty z bonusu)</li>
+            <li><i>Uwaga: Punkty z Underdoga również NIE są mnożone przez mnożnik rundy!</i></li>
+        </ul>
+    </div>
+    
+    <div class="rules-card">
+        <h3>🔒 Zasady Typowania (Blokady)</h3>
+        <ul>
+            <li>Typy można składać i zmieniać w zakładce "Twoje Typy" do momentu <b>Godziny Zamknięcia</b> przypisanej do konkretnego meczu. Po tym czasie mecz zostaje zablokowany.</li>
+            <li>Każde kliknięcie kafelka drużyny, cyfry czy "Hot Take" <b>zapisuje się automatycznie</b>.</li>
+            <li>W zakładce "Typy Innych" widzisz to, co obstawili Twoi znajomi, <b>dopiero gdy dany mecz zostanie zablokowany</b>. Do tego czasu ich typy są ukryte pod ikoną kłódki 🔒. Twoje własne typy są dla Ciebie zawsze widoczne.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- ADMIN ---
+with tab6:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
         new_results, new_odds, new_times = {}, {}, {}
