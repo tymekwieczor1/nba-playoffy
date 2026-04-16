@@ -37,7 +37,6 @@ LOGOS = {
     "TBD": "https://via.placeholder.com/150/333333/FFFFFF?text=?"
 }
 
-# Mapowanie dla nazw generycznych w tabeli
 GENERIC_MATCH_NAMES = {
     "W_SF1": "SF WEST 1", "W_SF2": "SF WEST 2",
     "E_SF1": "SF EAST 1", "E_SF2": "SF EAST 2",
@@ -63,10 +62,8 @@ def clean_pick(val):
     return val_str
 
 def is_underdog(odd_str):
-    try:
-        return float(str(odd_str).replace(",", ".")) >= 2.1
-    except:
-        return False
+    try: return float(str(odd_str).replace(",", ".")) >= 2.1
+    except: return False
 
 def check_pick_underdog(user_pick, odd_t1, odd_t2):
     if user_pick == "-": return False
@@ -254,35 +251,23 @@ with tab1:
         for stage_name, keys in STAGE_GROUPS:
             valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
             if not valid_keys: continue
-
             st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
             
             for i, k in enumerate(valid_keys):
                 t1, t2 = BRACKET[k][0], BRACKET[k][1]
                 current_val = clean_pick(st.session_state.temp_picks.get(k, "-"))
-
-                left_selected = False
-                right_selected = False
-                num_games = 4
+                left_selected, right_selected, num_games = False, False, 4
 
                 if current_val != "-":
                     try:
                         parts = current_val.split("-")
-                        left_selected = int(parts[0]) == 4
-                        right_selected = int(parts[1]) == 4
+                        left_selected, right_selected = int(parts[0]) == 4, int(parts[1]) == 4
                         num_games = sum(map(int, parts))
-                    except:
-                        current_val = "-"
-                        left_selected = False
-                        right_selected = False
+                    except: current_val = "-"
                 
                 match_start_time = times_db.get(k, "2026-04-18 19:00")
-                has_match_started = now_str >= match_start_time
-                is_match_result_known = actual_res_db.get(k, "W toku") != "W toku"
-                match_locked = has_match_started or is_match_result_known
-                
-                is_hot_str = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower()
-                is_hot = (is_hot_str == "true")
+                match_locked = now_str >= match_start_time or actual_res_db.get(k, "W toku") != "W toku"
+                is_hot = str(st.session_state.temp_picks.get(f"hot_{k}", "False")).lower() == "true"
                 hot_disabled = match_locked or current_val == "-" or (not is_hot and hot_takes_used >= 2)
                 options_disabled = match_locked or current_val == "-"
 
@@ -300,19 +285,18 @@ with tab1:
                 c1, c2 = st.columns(2)
                 logo_t1, logo_t2 = LOGOS.get(t1, LOGOS["TBD"]), LOGOS.get(t2, LOGOS["TBD"])
                 odd_t1, odd_t2 = clean_odd(odds_db.get(f"{k}_T1", "-")), clean_odd(odds_db.get(f"{k}_T2", "-"))
-                
-                ud_badge_t1 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t1) else ''
-                ud_badge_t2 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; letter-spacing: 0.5px;">💰 UNDERDOG</span></div>' if is_underdog(odd_t2) else ''
+                ud_t1 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold;">💰 UNDERDOG</span></div>' if is_underdog(odd_t1) else ''
+                ud_t2 = '<div style="margin-top: 6px;"><span style="background-color: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold;">💰 UNDERDOG</span></div>' if is_underdog(odd_t2) else ''
 
                 with c1:
                     css_class = "selected-blue" if left_selected else ("unselected" if right_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span>{ud_badge_t1}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t1}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t1}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t1}</span>{ud_t1}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"; st.rerun()
 
                 with c2:
                     css_class = "selected-blue" if right_selected else ("unselected" if left_selected else "")
-                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span>{ud_badge_t2}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="team-box {css_class}"><img src="{logo_t2}"><span style="font-weight:bold; font-size:0.95em; line-height:1.2; margin-bottom:2px;">{t2}</span><span style="font-size:0.8em;color:#f39c12;">Kurs: {odd_t2}</span>{ud_t2}</div>', unsafe_allow_html=True)
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"; st.rerun()
                 
@@ -334,8 +318,7 @@ with tab1:
                     g_cols = st.columns(4)
                     for idx, g in enumerate([4, 5, 6, 7]):
                         with g_cols[idx]:
-                            is_sel = (num_games == g)
-                            css_btn = "game-btn-selected" if is_sel else "game-btn-unselected"
+                            css_btn = "game-btn-selected" if num_games == g else "game-btn-unselected"
                             if options_disabled: css_btn += " game-btn-disabled"
                             st.markdown(f'<div class="game-btn {css_btn}">{g}</div>', unsafe_allow_html=True)
                             if st.button(f"{g}", key=f"bg_{k}_{g}", disabled=options_disabled, use_container_width=True):
@@ -344,24 +327,22 @@ with tab1:
 
                 mult = MULTIPLIERS[k]
                 is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
-                pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
-                pot_exact = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                pot_winner, pot_exact = (3*mult)+(2 if is_hot else 0)+(1 if is_curr_ud else 0), (5*mult)+(5 if is_hot else 0)+(3 if is_curr_ud else 0)
                 pot_html = f'<div style="font-size: 0.85em; margin-top: 8px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Wynik {format_score(pot_exact)}</span></div>'
 
                 colA, colB, colC = st.columns([2, 1, 1])
                 with colA:
                     if current_val == "-": st.markdown(f'<div style="margin-top:20px; font-size: 1.2em;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span><br>{pot_html}</div>', unsafe_allow_html=True)
                     else: 
-                        parts = current_val.split("-")
-                        pick_text = f'<b>{t1}</b> <b style="font-size: 1.2em;">4</b>-{parts[1]} {t2}' if left_selected else f'{t1} {parts[0]}-<b style="font-size: 1.2em;">4</b> <b>{t2}</b>'
+                        p = current_val.split("-")
+                        pick_text = f'<b>{t1}</b> <b style="font-size: 1.2em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.2em;">4</b> <b>{t2}</b>'
                         st.markdown(f'<div style="margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
                 
                 with colB:
                     st.markdown('<div class="save-btn-col">', unsafe_allow_html=True)
                     if st.button("💾 Zapisz", key=f"save_ind_{k}", disabled=match_locked or current_val == "-"):
-                        fresh_db = load_data("wyniki.csv")
-                        fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-                        save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.toast(f"Zapisano!"); st.rerun()
+                        fresh_db = load_data("wyniki.csv"); fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+                        save_data(fresh_db, "wyniki.csv"); st.session_state.db = fresh_db; st.toast("Zapisano!"); st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 with colC:
@@ -387,38 +368,39 @@ with tab2:
         for k in keys:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
             match_start_time = times_db.get(k, "2026-04-18 19:00")
-            has_match_started = now_str >= match_start_time
-            
+            has_started = now_str >= match_start_time
             actual_res = actual_res_db.get(k, "W toku")
-            is_match_finished = actual_res != "W toku" and actual_res != "-"
             
-            # Ustalanie nazwy wyświetlanej w tabeli (generyczna lub zespoły)
-            if t1 == "TBD" or t2 == "TBD":
-                display_match_name = GENERIC_MATCH_NAMES.get(k, "Mecz")
-            else:
-                display_match_name = f"{t1} vs {t2}"
-            
+            display_match_name = f"{t1} vs {t2}" if t1 != "TBD" and t2 != "TBD" else GENERIC_MATCH_NAMES.get(k, "Mecz")
             row = {"Mecz": display_match_name}
+            
             for p in PLAYERS:
-                # Pokazujemy typ jeśli mecz wystartował ALBO to jest kolumna zalogowanego gracza
-                if has_match_started or p == st.session_state.logged_user:
+                if has_started or p == st.session_state.logged_user:
                     p_data = st.session_state.db.get(p, {})
                     pick = clean_pick(p_data.get(k, "-"))
                     is_hot = str(p_data.get(f"hot_{k}", "False")).lower() == "true"
                     display_text = f"{pick} 🔥" if is_hot and pick != "-" else pick
                     
-                    if is_match_finished and pick != "-":
-                        odd_t1, odd_t2 = odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")
-                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odd_t1, odd_t2))
+                    if actual_res != "W toku" and actual_res != "-" and pick != "-":
+                        pts, _, _ = get_points_logic(pick, actual_res, MULTIPLIERS[k], is_hot, check_pick_underdog(pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
                         display_text += f" ({int(pts) if pts % 1 == 0 else round(pts,1)} pkt)"
                     row[p] = display_text
-                else:
-                    row[p] = "🔒"
+                else: row[p] = "🔒"
             summary_data.append(row)
     
     if summary_data:
         df_summary = pd.DataFrame(summary_data).set_index("Mecz")
-        st.dataframe(df_summary, use_container_width=True)
+        # --- STYLIZACJA TABELI (SUBTELNA SZACHOWNICA) ---
+        def apply_zebra(df):
+            styles = pd.DataFrame('', index=df.index, columns=df.columns)
+            for r in range(len(df)):
+                for c in range(len(df.columns)):
+                    bg_opacity = 0
+                    if r % 2 == 0: bg_opacity += 0.04
+                    if c % 2 == 0: bg_opacity += 0.04
+                    if bg_opacity > 0: styles.iloc[r, c] = f'background-color: rgba(255,255,255,{bg_opacity})'
+            return styles
+        st.dataframe(df_summary.style.apply(apply_zebra, axis=None), use_container_width=True)
 
 # --- RANKING ---
 with tab3:
@@ -426,12 +408,7 @@ with tab3:
     leaderboard = []
     for p in PLAYERS:
         p_data = st.session_state.db.get(p, {})
-        pts = 0
-        for k in ALL_KEYS:
-            is_hot = str(p_data.get(f"hot_{k}","False")).lower()=="true"
-            u_pick = clean_pick(p_data.get(k, "-"))
-            match_pts = get_points_logic(u_pick, actual_res_db.get(k, "W toku"), MULTIPLIERS[k], is_hot, check_pick_underdog(u_pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))[0]
-            pts += match_pts
+        pts = sum(get_points_logic(clean_pick(p_data.get(k, "-")), actual_res_db.get(k, "W toku"), MULTIPLIERS[k], str(p_data.get(f"hot_{k}","False")).lower()=="true", check_pick_underdog(clean_pick(p_data.get(k, "-")), odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))[0] for k in ALL_KEYS)
         leaderboard.append({"Gracz": p, "Suma": int(pts) if pts % 1 == 0 else round(pts, 1)})
     st.table(pd.DataFrame(leaderboard).sort_values("Suma", ascending=False).set_index("Gracz"))
 
@@ -439,48 +416,37 @@ with tab3:
 with tab4:
     def draw_bracket_card(k):
         t1, t2, s1, s2 = BRACKET[k][0], BRACKET[k][1], BRACKET[k][2], BRACKET[k][3]
-        u_data = st.session_state.db.get(st.session_state.logged_user, {})
-        u_pick = clean_pick(u_data.get(k, "-"))
-        is_hot = str(u_data.get(f"hot_{k}","False")).lower()=="true"
-        a_res = actual_res_db.get(k, "W toku")
-        pts, css_box, css_pts = get_points_logic(u_pick, a_res, MULTIPLIERS[k], is_hot, check_pick_underdog(u_pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
-        st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{a_res if a_res != "W toku" else "W toku"} | Ty: {"BRAK" if u_pick=="-" else u_pick}{" 🔥" if is_hot and u_pick!="-" else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
-
+        u_pick = clean_pick(st.session_state.db.get(st.session_state.logged_user, {}).get(k, "-"))
+        pts, css_box, css_pts = get_points_logic(u_pick, actual_res_db.get(k, "W toku"), MULTIPLIERS[k], str(st.session_state.db.get(st.session_state.logged_user, {}).get(f"hot_{k}","False")).lower()=="true", check_pick_underdog(u_pick, odds_db.get(f"{k}_T1", "-"), odds_db.get(f"{k}_T2", "-")))
+        st.markdown(f'<div class="match-box {css_box}"><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t1, LOGOS["TBD"])}" width="30"></div> <b>({s1}) {t1}</b></div><div style="text-align:center;margin:5px 0;font-size:0.8em;color:#888;">{actual_res_db.get(k, "W toku")} | Ty: {u_pick}{" 🔥" if "hot" in u_pick else ""} <span class="pts-badge {css_pts}">{format_score(pts)}</span></div><div style="display:flex;align-items:center;"><div class="logo-bg"><img src="{LOGOS.get(t2, LOGOS["TBD"])}" width="30"></div> <b>({s2}) {t2}</b></div></div>', unsafe_allow_html=True)
     for stage_name, keys in STAGE_GROUPS:
-        valid_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
-        if valid_keys:
+        v_keys = [k for k in keys if BRACKET[k][0] != "TBD" and BRACKET[k][1] != "TBD"]
+        if v_keys:
             st.markdown(f'<div class="round-header">{stage_name} (x{MULTIPLIERS[keys[0]]})</div>', unsafe_allow_html=True)
-            for k in valid_keys: draw_bracket_card(k)
+            for k in v_keys: draw_bracket_card(k)
 
 # --- ADMIN ---
 with tab5:
     admin_auth = st.text_input("Kod Administratora:", type="password")
     if admin_auth == ADMIN_PIN:
         new_results, new_odds, new_times = {}, {}, {}
-        st.markdown("### Wprowadzanie Wyników, Kursów i Czasu")
         for k in ALL_KEYS:
             t1, t2 = BRACKET[k][0], BRACKET[k][1]
-            curr_res, curr_odd_t1, curr_odd_t2 = actual_res_db.get(k, "W toku"), clean_odd(odds_db.get(f"{k}_T1", "")), clean_odd(odds_db.get(f"{k}_T2", ""))
-            curr_time = times_db.get(k, "2026-04-18 19:00")
             if t1 == "TBD" or t2 == "TBD":
-                new_results[k], new_odds[f"{k}_T1"], new_odds[f"{k}_T2"], new_times[k] = curr_res, curr_odd_t1, curr_odd_t2, curr_time
+                new_results[k], new_odds[f"{k}_T1"], new_odds[f"{k}_T2"], new_times[k] = actual_res_db.get(k, "W toku"), clean_odd(odds_db.get(f"{k}_T1", "")), clean_odd(odds_db.get(f"{k}_T2", "")), times_db.get(k, "2026-04-18 19:00")
                 continue
             st.markdown(f"**{t1} vs {t2}**")
             c1, c2, c3 = st.columns(3)
-            with c1:
-                opts = ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"]
-                new_results[k] = st.selectbox("Wynik", opts, index=opts.index(curr_res) if curr_res in opts else 0, key=f"adm_res_{k}")
-            with c2: new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=curr_odd_t1 if curr_odd_t1 != "-" else "", key=f"adm_odd1_{k}")
-            with c3: new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=curr_odd_t2 if curr_odd_t2 != "-" else "", key=f"adm_odd2_{k}")
+            with c1: new_results[k] = st.selectbox("Wynik", ["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"], index=["W toku","4-0","4-1","4-2","4-3","3-4","2-4","1-4","0-4"].index(actual_res_db.get(k, "W toku")), key=f"adm_res_{k}")
+            with c2: new_odds[f"{k}_T1"] = st.text_input(f"Kurs {t1}", value=clean_odd(odds_db.get(f"{k}_T1", "")), key=f"adm_odd1_{k}")
+            with c3: new_odds[f"{k}_T2"] = st.text_input(f"Kurs {t2}", value=clean_odd(odds_db.get(f"{k}_T2", "")), key=f"adm_odd2_{k}")
             c4, c5 = st.columns(2)
-            try: dt_obj = datetime.strptime(curr_time, "%Y-%m-%d %H:%M")
+            try: dt_obj = datetime.strptime(times_db.get(k, "2026-04-18 19:00"), "%Y-%m-%d %H:%M")
             except: dt_obj = datetime(2026, 4, 18, 19, 0)
-            with c4: d = st.date_input("Data zamknięcia", value=dt_obj.date(), key=f"adm_d_{k}")
-            with c5: t = st.time_input("Godzina zamknięcia", value=dt_obj.time(), key=f"adm_t_{k}")
+            with c4: d = st.date_input("Data", value=dt_obj.date(), key=f"adm_d_{k}")
+            with c5: t = st.time_input("Godzina", value=dt_obj.time(), key=f"adm_t_{k}")
             new_times[k] = f"{d.strftime('%Y-%m-%d')} {t.strftime('%H:%M')}"
             st.markdown("<hr style='margin: 10px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
-            
         if st.button("Zatwierdź Zmiany", use_container_width=True):
-            fresh_res = load_data("oficjalne_wyniki.csv")
-            fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
+            fresh_res = load_data("oficjalne_wyniki.csv"); fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
             save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
