@@ -172,12 +172,12 @@ def clean_odd(odd_val):
 
 def auto_save():
     if st.session_state.logged_user:
-        st.toast("⏳ Zapisywanie w chmurze...")
-        fresh_db = load_data("wyniki.csv")
-        fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
-        save_data(fresh_db, "wyniki.csv")
-        st.session_state.db = fresh_db
-        st.toast("✅ Zapisano pomyślnie!")
+        with st.spinner("📦 Zabezpieczam Twój typ w chmurze..."):
+            fresh_db = load_data("wyniki.csv")
+            fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
+            save_data(fresh_db, "wyniki.csv")
+            st.session_state.db = fresh_db
+        st.toast("✅ Typ Zapisany!")
 
 # --- 3. INICJALIZACJA ---
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
