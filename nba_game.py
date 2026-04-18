@@ -2,9 +2,19 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
+from github import Github
+import io
 
 # --- 1. KONFIGURACJA ---
-ADMIN_PIN = "1398"
+# Pobieranie tajnych danych z serwera Streamlit
+try:
+    ADMIN_PIN = st.secrets["ADMIN_PIN"]
+except:
+    ADMIN_PIN = "1398"
+
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+REPO_NAME = st.secrets.get("REPO_NAME", "")
+
 now = pd.Timestamp.now('Europe/Warsaw')
 now_str = now.strftime("%Y-%m-%d %H:%M")
 
@@ -65,15 +75,42 @@ STAGE_GROUPS = [
     ("FINAŁ NBA", ["FINALS"])
 ]
 
-# --- 2. FUNKCJE ---
+# --- 2. FUNKCJE ZAPISU DO GITHUB ---
 def load_data(filename):
-    if os.path.exists(filename):
-        try: return pd.read_csv(filename, index_col=0, dtype=str).to_dict('index')
-        except: return {}
-    return {}
+    if not GITHUB_TOKEN or not REPO_NAME:
+        if os.path.exists(filename):
+            try: return pd.read_csv(filename, index_col=0, dtype=str).to_dict('index')
+            except: return {}
+        return {}
+    try:
+        g = Github(GITHUB_TOKEN)
+        repo = g.get_repo(REPO_NAME)
+        file_content = repo.get_contents(filename)
+        csv_data = file_content.decoded_content.decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data), index_col=0, dtype=str)
+        return df.to_dict('index')
+    except Exception as e:
+        return {} 
 
 def save_data(data, filename):
-    pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
+    if not GITHUB_TOKEN or not REPO_NAME:
+        pd.DataFrame.from_dict(data, orient='index').to_csv(filename)
+        return
+    try:
+        g = Github(GITHUB_TOKEN)
+        repo = g.get_repo(REPO_NAME)
+        df = pd.DataFrame.from_dict(data, orient='index')
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer)
+        content = csv_buffer.getvalue()
+        
+        try:
+            file = repo.get_contents(filename)
+            repo.update_file(filename, f"Auto-update {filename}", content, file.sha)
+        except:
+            repo.create_file(filename, f"Create {filename}", content)
+    except Exception as e:
+        st.error(f"Błąd zapisu do GitHuba! Sprawdź konfigurację Secrets. Błąd: {e}")
 
 def clean_pick(val):
     if pd.isna(val): return "-"
@@ -135,10 +172,12 @@ def clean_odd(odd_val):
 
 def auto_save():
     if st.session_state.logged_user:
+        st.toast("⏳ Zapisywanie w chmurze...")
         fresh_db = load_data("wyniki.csv")
         fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
         save_data(fresh_db, "wyniki.csv")
         st.session_state.db = fresh_db
+        st.toast("✅ Zapisano pomyślnie!")
 
 # --- 3. INICJALIZACJA ---
 if 'db' not in st.session_state: st.session_state.db = load_data("wyniki.csv")
@@ -308,7 +347,6 @@ with tab1:
                     if st.button(f"Wybierz {t1}", key=f"bt1_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"4-{num_games-4}"
                         auto_save()
-                        st.toast("Zapisano typ!")
                         st.rerun()
 
                 with c2:
@@ -317,7 +355,6 @@ with tab1:
                     if st.button(f"Wybierz {t2}", key=f"bt2_{k}", disabled=match_locked, use_container_width=True):
                         st.session_state.temp_picks[k] = f"{num_games-4}-4"
                         auto_save()
-                        st.toast("Zapisano typ!")
                         st.rerun()
                 
                 if current_val != "-":
@@ -325,7 +362,6 @@ with tab1:
                     if st.button(f"Hot_{k}", key=f"btn_hot_{k}", disabled=hot_disabled, use_container_width=True):
                         st.session_state.temp_picks[f"hot_{k}"] = "True" if not is_hot else "False"
                         auto_save()
-                        if not is_hot: st.toast("🔥 HOT TAKE ZAPISANY! 🔥")
                         st.rerun()
 
                     st.markdown(f'<div style="text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 10px; margin-top: 10px; color: #ccc;">Liczba meczów w serii:</div>', unsafe_allow_html=True)
@@ -347,10 +383,8 @@ with tab1:
                                 if current_val != new_v: 
                                     st.session_state.temp_picks[k] = new_v
                                     auto_save()
-                                    st.toast("Zapisano typ!")
                                     st.rerun()
 
-                # --- NOWY UKŁAD: WYŚRODKOWANY TYP I CZYSTY PRZYCISK ---
                 if current_val == "-": 
                     st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.2em; line-height: 1.4;">Twój typ: <br><span style="color:#ff4b4b; font-weight:bold;">BRAK !!! 🚨</span></div>', unsafe_allow_html=True)
                 else: 
@@ -366,7 +400,6 @@ with tab1:
                     pick_text = f'<b style="font-size: 1.1em;">{t1}</b> <b style="font-size: 1.3em;">4</b>-{p[1]} {t2}' if left_selected else f'{t1} {p[0]}-<b style="font-size: 1.3em;">4</b> <b style="font-size: 1.1em;">{t2}</b>'
                     st.markdown(f'<div style="text-align: center; margin-top:20px; font-size: 1.0em; line-height: 1.4;">Twój typ: <br><span style="color:#0099ff;">{pick_text}{" 🔥" if is_hot else ""}</span><br>{pot_html}</div>', unsafe_allow_html=True)
                 
-                # --- PRZYCISK WYCZYŚĆ (Wyśrodkowany pod typem) ---
                 st.markdown('<div style="height: 10px;"></div>', unsafe_allow_html=True)
                 _, c_btn, _ = st.columns([1, 2, 1])
                 with c_btn:
@@ -375,14 +408,13 @@ with tab1:
                         st.session_state.temp_picks[k] = "-"
                         st.session_state.temp_picks[f"hot_{k}"] = "False"
                         auto_save()
-                        st.toast("Wyczyszczono typ!")
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 st.markdown('</div>', unsafe_allow_html=True)
                 if i < len(valid_keys) - 1: st.markdown("<hr style='margin: 30px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
 
-# --- TYPY INNYCH ---
+# --- TAB 2: TYPY INNYCH ---
 with tab2:
     st.subheader("👀 Typy pozostałych graczy")
     st.markdown("Typy są ukryte 🔒 do momentu wygaśnięcia czasu na typowanie. Twoje typy są widoczne zawsze.")
@@ -567,7 +599,10 @@ with tab6:
         if st.button("Zatwierdź Zmiany", use_container_width=True):
             fresh_res = load_data("oficjalne_wyniki.csv")
             fresh_res["OFFICIAL"], fresh_res["ODDS"], fresh_res["START_TIMES"] = new_results, new_odds, new_times
-            save_data(fresh_res, "oficjalne_wyniki.csv"); st.session_state.results = fresh_res; st.success("Zapisano!"); st.rerun()
+            save_data(fresh_res, "oficjalne_wyniki.csv")
+            st.session_state.results = fresh_res
+            st.success("Zapisano w chmurze!")
+            st.rerun()
             
         st.markdown("<hr style='margin: 40px 0 20px 0; border-top: 2px solid #ff4b4b;'>", unsafe_allow_html=True)
         st.markdown("### 🚨 Strefa Niebezpieczna")
@@ -580,7 +615,13 @@ with tab6:
             col_y, col_n = st.columns(2)
             with col_y:
                 if st.button("Tak, usuń wszystko!", type="primary", use_container_width=True):
-                    save_data({}, "wyniki.csv"); st.session_state.db = {}; st.session_state.temp_picks = {}; st.session_state.confirm_clear = False; st.success("Usunięte!"); st.rerun()
+                    save_data({}, "wyniki.csv")
+                    st.session_state.db = {}
+                    st.session_state.temp_picks = {}
+                    st.session_state.confirm_clear = False
+                    st.success("Usunięte!")
+                    st.rerun()
             with col_n:
                 if st.button("Anuluj", use_container_width=True):
-                    st.session_state.confirm_clear = False; st.rerun()
+                    st.session_state.confirm_clear = False
+                    st.rerun()
