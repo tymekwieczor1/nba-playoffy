@@ -172,7 +172,7 @@ def clean_odd(odd_val):
 
 def auto_save():
     if st.session_state.logged_user:
-        with st.spinner("📦 Zabezpieczam Twój typ w chmurze..."):
+        with st.spinner("📦 Zapisuje typ..."):
             fresh_db = load_data("wyniki.csv")
             fresh_db[st.session_state.logged_user] = st.session_state.temp_picks
             save_data(fresh_db, "wyniki.csv")
