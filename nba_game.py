@@ -139,15 +139,17 @@ def get_points_logic(user_pick, actual_result, multiplier=1.0, is_hot_take=False
     try:
         u_left_wins = int(str(user_pick).split("-")[0]) == 4
         a_left_wins = int(str(actual_result).split("-")[0]) == 4
+        
         if str(user_pick) == str(actual_result): 
             pts = 5 * multiplier
-            if is_hot_take: pts += 5  
-            if is_underdog_pick: pts += 3  
+            if is_hot_take: pts += 3       # ZMIANA: Łącznie +3 za dokładny wynik z Hot Take
+            if is_underdog_pick: pts += 2  # ZMIANA: Łącznie +2 za dokładny wynik Underdoga
             return pts, "res-exact", "pts-exact"
+            
         elif u_left_wins == a_left_wins: 
             pts = 3 * multiplier
-            if is_hot_take: pts += 2  
-            if is_underdog_pick: pts += 1  
+            if is_hot_take: pts += 2       # ZMIANA: +2 za samego zwycięzcę z Hot Take
+            if is_underdog_pick: pts += 1  # ZMIANA: +1 za samego zwycięzcę Underdoga
             return pts, "res-winner", "pts-winner"
     except: pass
     return 0, "res-wrong", "pts-wrong"
@@ -390,8 +392,10 @@ with tab1:
                 else: 
                     mult = MULTIPLIERS[k]
                     is_curr_ud = check_pick_underdog(current_val, odd_t1, odd_t2)
+                    
+                    # ZMIANA: Zaktualizowane liczenie potencjalnych punktów
                     pot_winner = (3 * mult) + (2 if is_hot else 0) + (1 if is_curr_ud else 0)
-                    pot_exact_total = (5 * mult) + (5 if is_hot else 0) + (3 if is_curr_ud else 0)
+                    pot_exact_total = (5 * mult) + (3 if is_hot else 0) + (2 if is_curr_ud else 0)
                     pot_bonus = pot_exact_total - pot_winner
                     
                     pot_html = f'<div style="font-size: 0.9em; margin-top: 4px; color: #aaa;">Do zdobycia: <span style="color: #0099ff; font-weight: bold;">Zwycięzca {format_score(pot_winner)}</span> • <span style="color: #28a745; font-weight: bold;">Dodatkowo za wynik +{format_score(pot_bonus).replace("+","")}</span></div>'
@@ -547,7 +551,7 @@ with tab5:
         <p>Każdy gracz ma do wykorzystania <b>tylko 2 Hot Take'i</b> na całe Playoffs! Używaj ich mądrze.</p>
         <ul>
             <li>Jeśli trafisz zwycięzcę z Hot Takem: dodatkowe <b>+2 punkty</b></li>
-            <li>Jeśli trafisz dokładny wynik z Hot Takem: dodatkowe <b>+5 punktów</b></li>
+            <li>Jeśli trafisz dokładny wynik z Hot Takem: dodatkowy <b>+1 punkt</b> (łącznie +3 punkty z bonusu)</li>
             <li><i>Uwaga: Punkty z Hot Take są stałe i NIE są mnożone przez mnożnik rundy!</i></li>
         </ul>
     </div>
@@ -557,7 +561,7 @@ with tab5:
         <p>Jeśli drużyna na którą stawiasz ma kurs <b>2.10 lub wyższy</b> ( oznaczona jako 💰 UNDERDOG ), otrzymujesz ekstra punkty za odwagę:</p>
         <ul>
             <li>Jeśli postawisz na underdoga i wygra: dodatkowy <b>+1 punkt</b></li>
-            <li>Jeśli trafisz dodatkowo dokładny wynik: kolejne <b>+2 punkty</b> (łącznie +3 punkty z bonusu)</li>
+            <li>Jeśli trafisz dodatkowo dokładny wynik: kolejny <b>+1 punkt</b> (łącznie +2 punkty z bonusu)</li>
             <li><i>Uwaga: Punkty z Underdoga również NIE są mnożone przez mnożnik rundy!</i></li>
         </ul>
     </div>
